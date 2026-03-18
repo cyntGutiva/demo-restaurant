@@ -1,0 +1,63 @@
+---
+import { Star, BookOpen, PhoneCall } from 'lucide';
+---
+
+<section class="relative h-screen min-h-[600px] flex items-center justify-center pt-20 overflow-hidden">
+  <div class="absolute inset-0 z-0">
+    <img 
+      src="https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?q=80&w=2070&auto=format&fit=crop" 
+      alt="Fried Chicken Background" 
+      class="w-full h-full object-cover" 
+    />
+    <div class="absolute inset-0 bg-gradient-to-r from-angus-black via-angus-black/80 to-transparent"></div>
+  </div>
+  
+  <div class="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 flex flex-col items-start hero-content">
+    <span class="hero-badge inline-block py-1 px-3 rounded-full bg-angus-orange/20 text-angus-orange font-medium text-sm mb-4 border border-angus-orange/30 opacity-0">
+      Valoración 4.2 <i data-lucide="star" class="w-3 h-3 inline pb-0.5 fill-current"></i> de 432 reseñas
+    </span>
+    
+    <h1 class="hero-title text-5xl md:text-7xl font-heading font-extrabold text-white mb-4 leading-tight opacity-0">
+      Angus <br/>
+      <span class="text-transparent bg-clip-text bg-gradient-to-r from-angus-yellow to-angus-orange">Chicken</span>
+    </h1>
+    
+    <p class="hero-text text-xl md:text-2xl text-gray-300 mb-8 max-w-lg border-l-4 border-angus-red pl-4 py-1 opacity-0">
+      El mejor pollo de Valle Grande. Sabor irresistible, calidad inigualable.
+    </p>
+    
+    <div class="hero-btns flex flex-col sm:flex-row gap-4 opacity-0">
+      <a href="#menu" class="bg-white text-angus-black hover:bg-gray-100 px-8 py-3 rounded-full font-bold text-lg transition-transform hover:-translate-y-1 shadow-lg flex items-center justify-center gap-2">
+        <i data-lucide="book-open" class="w-5 h-5"></i> Ver Carta
+      </a>
+      <a href="tel:+56224910606" class="bg-angus-red hover:bg-red-600 text-white px-8 py-3 rounded-full font-bold text-lg transition-transform hover:-translate-y-1 shadow-lg shadow-red-500/30 flex items-center justify-center gap-2">
+        <i data-lucide="phone-call" class="w-5 h-5"></i> Pedir Ahora
+      </a>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Importamos GSAP dinámicamente o lo usamos desde el Layout si lo cargaste por CDN
+  // @ts-ignore
+  const { gsap } = window;
+
+  if (gsap) {
+    const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+    tl.to(".hero-badge", { opacity: 1, y: 0, duration: 0.8, delay: 0.5 })
+      .to(".hero-title", { opacity: 1, y: 0, duration: 0.8 }, "-=0.4")
+      .to(".hero-text", { opacity: 1, x: 0, duration: 0.8 }, "-=0.4")
+      .to(".hero-btns", { opacity: 1, y: 0, duration: 0.8 }, "-=0.4");
+  }
+</script>
+
+<style>
+  /* Estados iniciales para evitar el "salto" visual antes de que cargue GSAP */
+  .hero-badge, .hero-title, .hero-btns {
+    transform: translateY(30px);
+  }
+  .hero-text {
+    transform: translateX(-30px);
+  }
+</style>

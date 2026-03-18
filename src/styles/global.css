@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colores Personalizados */
+  --color-angus-black: #111111;
+  --color-angus-dark: #1a1a1a;
+  --color-angus-red: #e52b12;
+  --color-angus-yellow: #ffb800;
+  --color-angus-orange: #ff6b00;
+
+  /* Fuentes */
+  --font-sans: "Inter", ui-sans-serif, system-ui;
+  --font-heading: "Poppins", sans-serif;
+}
+
+/* Base de tu App */
+@layer base {
+  body {
+    @apply bg-angus-black text-gray-200 antialiased overflow-x-hidden;
+  }
+}

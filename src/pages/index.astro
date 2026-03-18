@@ -1,11 +1,70 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import Navbar from '../components/Navbar.astro';
+import Hero from '../components/Hero.astro';
+import About from '../components/About.astro';
+import MenuCard from '../components/MenuCard.astro';
+import Services from '../components/Services.astro';
+import Location from '../components/Location.astro';
+import Footer from '../components/Footer.astro';
+import menuData from '../data/menu.json';
 ---
 
-<Layout>
-	<Welcome />
+<Layout title="Angus Chicken | Valle Grande Lampa">
+  <Navbar />
+  <Hero />
+  <About />
+  
+  <section id="menu" class="py-24 bg-angus-dark relative">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl font-heading font-bold text-white mb-4">Nuestra Carta</h2>
+        <p class="text-gray-400 max-w-2xl mx-auto">Elige tu combinación favorita. Desde pollos enteros hasta hamburguesas bañadas en cheddar.</p>
+      </div>
+      
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {menuData.map((plato) => (
+          <div class="reveal-card">
+            <MenuCard {...plato} />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <Services />
+  <Location />
+  <Footer />
 </Layout>
+
+<script>
+  // @ts-ignore
+  const { gsap, ScrollTrigger } = window;
+  
+  if (gsap && ScrollTrigger) {
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Animación About
+    gsap.to(".about-image", {
+      scrollTrigger: { trigger: ".about-image", start: "top 80%" },
+      opacity: 1, x: 0, duration: 1
+    });
+    gsap.to(".about-text", {
+      scrollTrigger: { trigger: ".about-text", start: "top 80%" },
+      opacity: 1, x: 0, duration: 1
+    });
+
+    // Animación Cascada para el Menú
+    gsap.from(".reveal-card", {
+      scrollTrigger: {
+        trigger: "#menu",
+        start: "top 70%",
+      },
+      y: 50,
+      opacity: 0,
+      stagger: 0.2,
+      duration: 0.8,
+      ease: "back.out(1.7)"
+    });
+  }
+</script>

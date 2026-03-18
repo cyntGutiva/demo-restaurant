@@ -1,0 +1,47 @@
+---
+import { Flame, Instagram, Facebook } from 'lucide';
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="bg-black pt-16 pb-8 border-t border-white/10">
+  <div class="max-w-7xl mx-auto px-6 md:px-12">
+    <div class="grid md:grid-cols-4 gap-10 mb-12">
+      <div class="col-span-1 md:col-span-2">
+        <a href="#" class="text-2xl font-heading font-bold text-white flex items-center gap-2 mb-4">
+          <i data-lucide="flame" class="text-angus-orange"></i>
+          Angus Chicken
+        </a>
+        <p class="text-gray-400 mb-6 max-w-sm">
+          Comida rápida de calidad. El mejor pollo frito y hamburguesas de Valle Grande, Lampa.
+        </p>
+        <div class="flex gap-4">
+          <a href="#" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all">
+            <i data-lucide="instagram"></i>
+          </a>
+          <a href="#" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/20 transition-all">
+            <i data-lucide="facebook"></i>
+          </a>
+        </div>
+      </div>
+      
+      <div>
+        <h4 class="text-white font-bold mb-4 uppercase text-sm">Enlaces</h4>
+        <ul class="space-y-2 text-gray-400">
+          <li><a href="#about" class="hover:text-white">Nosotros</a></li>
+          <li><a href="#menu" class="hover:text-white">Carta</a></li>
+          <li><a href="#services" class="hover:text-white">Servicios</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-white font-bold mb-4 uppercase text-sm">Contacto</h4>
+        <p class="text-gray-400 text-sm">La Montaña Sur 2681, Lampa</p>
+        <p class="text-white font-medium mt-2">+56 2 2491 0606</p>
+      </div>
+    </div>
+    
+    <div class="border-t border-white/10 pt-8 text-center text-sm text-gray-500">
+      <p>© {currentYear} Angus Chicken. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</footer>

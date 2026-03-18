@@ -1,0 +1,26 @@
+---
+// Ya no necesitas importar los iconos aquí como componentes
+const servicios = [
+  { icon: "truck", title: "Delivery", desc: "Llegamos a todo Valle Grande y alrededores de Lampa." },
+  { icon: "store", title: "Retiro en Local", desc: "Pide por teléfono y retira sin esperas." },
+  { icon: "utensils", title: "Consumo Local", desc: "Disfruta de tu comida recién hecha en nuestro local." },
+  { icon: "clock", title: "Horario Extendido", desc: "Abiertos hasta tarde para tus antojos nocturnos." }
+];
+---
+
+<section id="services" class="py-24 bg-angus-dark border-y border-white/5">
+  <div class="max-w-7xl mx-auto px-6 text-center">
+    <h2 class="text-4xl font-heading font-bold text-white mb-16">Servicios para ti</h2>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      {servicios.map((s) => (
+        <div class="service-card p-8 bg-angus-black rounded-2xl border border-white/5 hover:bg-gradient-to-b hover:from-angus-black hover:to-angus-red/10 transition-all group">
+          <div class="w-14 h-14 bg-angus-red/20 rounded-xl flex items-center justify-center mb-6 mx-auto group-hover:bg-angus-red/40 transition-colors">
+            <i data-lucide={s.icon} class="text-angus-red w-8 h-8"></i>
+          </div>
+          <h4 class="text-xl font-bold text-white mb-3">{s.title}</h4>
+          <p class="text-gray-400 text-sm leading-relaxed">{s.desc}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

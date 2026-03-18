@@ -1,23 +1,81 @@
+---
+import '../styles/global.css';
+
+interface Props {
+	title?: string;
+	description?: string;
+}
+
+const { 
+	title = "Angus Chicken | El Mejor Pollo Frito de Valle Grande", 
+	description = "Disfruta del sabor inigualable de Angus Chicken en Lampa. Pollo crujiente, hamburguesas premium y combos familiares con delivery." 
+} = Astro.props;
+---
+
 <!doctype html>
-<html lang="en">
+<html lang="es" class="scroll-smooth">
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
+		
+		<title>{title}</title>
+		<meta name="description" content={description} />
+		<meta name="theme-color" content="#111111" />
+
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@700;800;900&display=swap" rel="stylesheet">
+
+		<script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+		<script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 	</head>
-	<body>
+	<body class="bg-angus-black text-gray-100 selection:bg-angus-orange selection:text-white">
+		
 		<slot />
+
+		<script>
+			import { createIcons, Flame, Phone, Menu, Star, BookOpen, PhoneCall, CheckCircle2, Truck, Store, Utensils, Clock, Instagram, Facebook, Image } from 'lucide';
+
+			// Función para renderizar iconos
+			const initIcons = () => {
+				createIcons({
+					icons: {
+						Flame, Phone, Menu, Star, BookOpen, PhoneCall, CheckCircle2, Truck, Store, Utensils, Clock, Instagram, Facebook, Image
+					}
+				});
+			};
+
+			// Ejecutar al cargar y cuando Astro cambie de página (si usas View Transitions)
+			initIcons();
+			document.addEventListener('astro:after-swap', initIcons);
+		</script>
+
+		<style is:global>
+			/* Optimizaciones de Scroll y Selección */
+			:root {
+				--angus-red: #E52B12;
+			}
+
+			::-webkit-scrollbar {
+				width: 8px;
+			}
+			::-webkit-scrollbar-track {
+				background: #111111;
+			}
+			::-webkit-scrollbar-thumb {
+				background: #333333;
+				border-radius: 10px;
+			}
+			::-webkit-scrollbar-thumb:hover {
+				background: var(--angus-red);
+			}
+
+			/* Evitar destellos de contenido no deseado (FOUC) */
+			.opacity-0 {
+				opacity: 0;
+			}
+		</style>
 	</body>
 </html>
-
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>
