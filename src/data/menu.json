@@ -3,12 +3,12 @@
     "title": "Combo Familiar Plus",
     "price": "$9.990",
     "description": "8 piezas de pollo crujiente, 2 porciones de papas...",
-    "image": "/images/combo-familiar.jpg"
+    "image": "/images/combo-familiar.png"
   },
   {
     "title": "Hamburguesa Angus Doble",
     "price": "$6.500",
     "description": "Doble carne angus, queso cheddar fundido...",
-    "image": "https://url-de-otra-imagen.jpg"
+    "image": "/images/hamburguesa-angus-doble.png"
   }
 ]
