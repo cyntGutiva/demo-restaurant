@@ -1,0 +1,78 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Finalizar Pedido | Angus Chicken">
+  <main class="py-20 bg-black text-white px-4">
+    <div class="max-w-2xl mx-auto">
+      <h1 class="text-3xl font-bold mb-8">Resumen de tu Pedido</h1>
+      
+      <div id="cart-summary" class="space-y-4 mb-10"></div>
+
+      <form id="order-form" class="space-y-6 bg-zinc-900 p-8 rounded-2xl border border-white/5">
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Nombre Completo</label>
+          <input type="text" id="nombre-cliente" required class="w-full bg-black border border-white/10 p-3 rounded-lg focus:border-angus-red outline-none">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Teléfono</label>
+          <input type="tel" id="telefono-cliente" placeholder="+569..." required class="w-full bg-black border border-white/10 p-3 rounded-lg focus:border-angus-red outline-none">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Dirección de Entrega</label>
+          <textarea id="direccion-cliente" required class="w-full bg-black border border-white/10 p-3 rounded-lg focus:border-angus-red outline-none"></textarea>
+        </div>
+
+        <button type="submit" class="w-full py-4 bg-angus-red hover:bg-red-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/20">
+          Enviar pedido por WhatsApp
+        </button>
+      </form>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  // 1. Mostrar resumen del carrito
+  const summaryDiv = document.getElementById('cart-summary');
+  let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+  if (cart.length === 0) {
+    summaryDiv.innerHTML = '<p class="text-gray-500">Tu carrito está vacío.</p>';
+  } else {
+    let total = 0;
+    cart.forEach(item => {
+      total += Number(item.precio);
+      summaryDiv.innerHTML += `
+        <div class="flex justify-between border-b border-white/5 pb-2">
+          <span>${item.nombre}</span>
+          <span class="font-bold text-angus-orange">$${Number(item.precio).toLocaleString('es-CL')}</span>
+        </div>
+      `;
+    });
+    summaryDiv.innerHTML += `<div class="text-right text-xl font-bold mt-4">Total: $${total.toLocaleString('es-CL')}</div>`;
+  }
+
+  // 2. Manejar el envío por WhatsApp
+  document.getElementById('order-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const cliente = document.getElementById('nombre-cliente').value;
+    const telefono = document.getElementById('telefono-cliente').value;
+    const direccion = document.getElementById('direccion-cliente').value;
+
+    // Formatear lista de productos para el mensaje
+    const listaProductos = cart.map(item => `- ${item.nombre}`).join('%0A');
+    
+    const mensaje = `*NUEVO PEDIDO - ANGUS CHICKEN*%0A%0A` +
+                   `*Cliente:* ${cliente}%0A` +
+                   `*Teléfono:* ${telefono}%0A` +
+                   `*Dirección:* ${direccion}%0A%0A` +
+                   `*Productos:*%0A${listaProductos}`;
+
+    // Abrir WhatsApp (Reemplaza con el número real de Angus Chicken)
+    window.open(`https://wa.me/569XXXXXXXX?text=${mensaje}`, '_blank');
+    
+    // Opcional: Limpiar carrito después de pedir
+    // localStorage.removeItem('cart');
+  });
+</script>

@@ -1,48 +1,134 @@
 ---
-interface Props {
-  title: string;
-  price: string;
-  description: string;
-  image?: string;
-  badge?: string;
+import { pool } from '../lib/mysql';
+
+let menuItems = [];
+let error = null;
+
+try {
+  const [rows]: any = await pool.query('SELECT * FROM menu_items ORDER BY id DESC');
+  menuItems = rows;
+  
+} catch (e) {
+  error = e.message;
+  console.error("Error en BD:", e);
 }
 
-const { title, price, description, image, badge } = Astro.props;
-import { Image as LucideImage } from 'lucide';
+const hasItems = menuItems && menuItems.length > 0;
 ---
-
-<div class="menu-card bg-angus-black rounded-2xl overflow-hidden border border-white/5 hover:border-white/10 transition-all duration-300 hover:-translate-y-2 group">
-  <div class="h-48 overflow-hidden relative bg-gray-800">
-    {image ? (
-      <img 
-        src={image} 
-        alt={title} 
-        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-        loading="lazy"
-      />
-    ) : (
-      <div class="w-full h-full flex items-center justify-center">
-        <i data-lucide="image" class="w-12 h-12 text-gray-600"></i>
-      </div>
-    )}
-    <div class="absolute top-4 right-4 bg-angus-red text-white px-3 py-1 rounded-full font-bold shadow-lg">
-      {price}
+<section id="menu" class="py-24 bg-angus-dark relative">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-heading font-bold text-white mb-4">Nuestra Carta</h2>
+      <p class="text-gray-400 max-w-2xl mx-auto">Elige tu combinación favorita. Desde pollos enteros hasta hamburguesas bañadas en cheddar.</p>
     </div>
-    {badge && (
-      <div class="absolute top-4 left-4 bg-angus-orange text-white text-xs px-2 py-1 rounded font-bold uppercase">
-        {badge}
-      </div>
-    )}
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
+      {hasItems ? (
+        menuItems.map((item) => {
+          // FORZAR FORMATO CHILENO: 
+          // Convertimos a número por si la BD lo devuelve como string
+          const precioNumerico = Number(item.price);
+          const precioFormateado = new Intl.NumberFormat('es-CL', {
+            style: 'currency',
+            currency: 'CLP',
+            minimumFractionDigits: 0
+          }).format(precioNumerico);
+
+          return (
+            <div class="menu-card bg-angus-black rounded-2xl overflow-hidden border border-white/5 hover:border-white/10 transition-all duration-300 hover:-translate-y-2 group">
+              <div class="h-48 overflow-hidden relative bg-gray-800">
+                {item.image_url ? (
+                  <img 
+                    src={item.image_url} 
+                    alt={item.name} 
+                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                  />
+                ) : (
+                  <div class="w-full h-full flex items-center justify-center bg-zinc-900">
+                    <span class="text-zinc-700 text-xs">Fried Chicken</span>
+                  </div>
+                )}
+                
+                <div class="absolute top-4 right-4 bg-angus-red text-white px-3 py-1 rounded-full font-bold shadow-lg">
+                  {precioFormateado}
+                </div>
+
+                {item.category === 'Destacado' && (
+                  <div class="absolute top-4 left-4 bg-angus-orange text-white text-xs px-2 py-1 rounded font-bold uppercase">
+                    Popular
+                  </div>
+                )}
+              </div>
+
+              <div class="p-6">
+                <h3 class="text-xl font-bold text-white mb-2 group-hover:text-angus-orange transition-colors">
+                  {item.name}
+                </h3>
+                <p class="text-gray-400 text-sm mb-4 line-clamp-2">
+                  {item.description}
+                </p>
+                <button 
+                  class="add-to-cart-btn w-full py-2 rounded-lg border border-white/10 text-center text-white font-medium hover:bg-white hover:text-angus-black transition-colors"
+                  data-id={item.id}
+                  data-nombre={item.name}
+                  data-precio={item.price}
+                >
+                  Agregar al pedido
+                </button>
+              </div>
+            </div>
+          );
+        })
+      ) : (
+        <div class="col-span-full text-center py-20 border border-dashed border-white/10 rounded-2xl">
+          <p class="text-gray-500">
+            {error ? `Error de conexión: ${error}` : "No se encontraron productos en la base de datos."}
+          </p>
+        </div>
+      )}
+    </div>
   </div>
-  <div class="p-6">
-    <h3 class="text-xl font-heading font-bold text-white mb-2 group-hover:text-angus-orange transition-colors">
-      {title}
-    </h3>
-    <p class="text-gray-400 text-sm mb-4 line-clamp-2">
-      {description}
-    </p>
-    <button class="w-full py-2 rounded-lg border border-white/10 text-white font-medium hover:bg-white hover:text-angus-black transition-colors">
-      Agregar al pedido
-    </button>
-  </div>
-</div>
+</section>
+
+<script is:inline>
+  document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const item = {
+        tempId: Date.now(), // ID único para esta instancia en el carrito
+        id: button.getAttribute('data-id'),
+        name: button.getAttribute('data-nombre'),
+        precio: Number(button.getAttribute('data-precio'))
+      };
+
+      let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      cart.push(item);
+
+      // const itemExistente = cart.find(item => item.id === id);
+      // console.log("Existe? ", itemExistente);
+      
+      // if (itemExistente) {
+      //   // 2. Si existe, aumentamos qty y sumamos al precio acumulado
+      //   itemExistente.qty += 1;
+      //   itemExistente.totalPrice = itemExistente.qty * itemExistente.price;
+      // } else {
+      //   // 3. Si es nuevo, lo agregamos con qty 1
+      //   cart.push({
+      //     id: id,
+      //     name: name,
+      //     price: price,
+      //     totalPrice: totalPrice,
+      //     qty: 1
+      //   });
+      // }
+
+      localStorage.setItem('cart', JSON.stringify(cart));
+
+      // Disparamos un evento personalizado para que el Sidebar se entere
+      window.dispatchEvent(new Event('cart-updated'));
+      
+      // Feedback visual (opcional)
+      button.innerText = "¡Añadido!";
+      setTimeout(() => button.innerText = "Agregar al pedido", 1000);
+    });
+  });
+</script>
