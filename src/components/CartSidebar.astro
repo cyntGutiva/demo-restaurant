@@ -30,7 +30,7 @@
   </div>
 </aside>
 
-<script>
+<script is:inline>
   const openBtn = document.getElementById('open-cart');
   const closeBtn = document.getElementById('close-cart');
   const sidebar = document.getElementById('cart-sidebar');
@@ -39,11 +39,21 @@
   const totalSpan = document.getElementById('sidebar-total');
   const countSpan = document.getElementById('cart-count');
 
-  // Funciones de apertura/cierre
-  const toggleCart = () => {
+  // Función específica para ABRIR
+  window.openCartSidebar = function() {
+    sidebar.classList.remove('translate-x-full');
+    overlay.classList.remove('hidden');
+    
+    // Aprovechamos de renderizar para que la data sea fresca
+    if (typeof renderCart === 'function') {
+      renderCart();
+    }
+  };
+
+  // Tu función toggleCart original puede seguir existiendo para el botón cerrar
+  window.toggleCart = () => {
     sidebar.classList.toggle('translate-x-full');
     overlay.classList.toggle('hidden');
-    renderCart(); // Actualizar contenido al abrir
   };
 
   openBtn.addEventListener('click', toggleCart);
@@ -52,7 +62,13 @@
 
   function renderCart() {
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    countSpan.innerText = cart.length;
+    
+    // 1. Corregimos el contador del icono (Suma todas las qty, no solo el largo del array)
+    const totalQty = cart.reduce((acc, item) => acc + item.qty, 0);
+    document.getElementById('cart-count').innerText = totalQty;
+
+    const cartList = document.getElementById('sidebar-cart-items');
+    const totalSpan = document.getElementById('sidebar-total');
 
     if (cart.length === 0) {
       cartList.innerHTML = '<p class="text-gray-500 text-center mt-10">Tu carrito está vacío</p>';
@@ -61,25 +77,38 @@
     }
 
     let total = 0;
-    cartList.innerHTML = cart.map((item, index) => {
-      total += Number(item.precio);
+    cartList.innerHTML = cart.map((item) => {
+      const subtotal = Number(item.price) * item.qty;
+      total += subtotal;
+      
       return `
-        <div class="flex justify-between items-center bg-white/5 p-3 rounded-lg border border-white/5">
-          <div>
-            <p class="text-white font-medium">${item.name}</p>
-            <p class="text-angus-orange text-sm">$${Number(item.price).toLocaleString('es-CL')}</p>
+        <div class="bg-white/5 p-4 rounded-xl border border-white/5 flex flex-col gap-3">
+          <div class="flex justify-between items-start">
+            <h3 class="text-white font-bold text-sm">${item.name}</h3>
+            <button onclick="removeFromCart('${item.id}')" class="text-zinc-500 hover:text-red-500">
+               <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
           </div>
-          <button onclick="removeFromCart(${index})" class="text-red-500 hover:bg-red-500/10 p-2 rounded-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-          </button>
-        </div>
-      `;
+          <div class="flex justify-between items-center">
+            <p class="text-angus-orange font-bold font-mono text-sm">$${subtotal.toLocaleString('es-CL')}</p>
+            <div class="flex items-center bg-black rounded-lg border border-white/10 overflow-hidden">
+              <button onclick="updateQty('${item.id}', -1)" class="px-3 py-1 text-white hover:bg-zinc-800 font-bold">-</button>
+              <span class="px-3 py-1 text-white text-xs font-bold min-w-[30px] text-center">${item.qty}</span>
+              <button onclick="updateQty('${item.id}', 1)" class="px-3 py-1 text-white hover:bg-zinc-800 font-bold">+</button>
+            </div>
+          </div>
+        </div>`;
     }).join('');
 
     totalSpan.innerText = `$${total.toLocaleString('es-CL')}`;
   }
 
-  // Hacer que renderCart sea accesible globalmente para actualizar desde MenuGrid
-  window.updateSidebar = renderCart;
-  renderCart(); // Carga inicial
+  // 2. HACER QUE ESCUCHE EL EVENTO
+  window.addEventListener('cart-updated', renderCart);
+
+  // 3. Inicialización al cargar
+  document.addEventListener('DOMContentLoaded', renderCart);
+  
+  // Exponer para los botones de apertura
+  window.renderCart = renderCart;
 </script>

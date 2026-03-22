@@ -93,42 +93,88 @@ const hasItems = menuItems && menuItems.length > 0;
 <script is:inline>
   document.querySelectorAll('.add-to-cart-btn').forEach(button => {
     button.addEventListener('click', () => {
-      const item = {
-        tempId: Date.now(), // ID único para esta instancia en el carrito
-        id: button.getAttribute('data-id'),
-        name: button.getAttribute('data-nombre'),
-        precio: Number(button.getAttribute('data-precio'))
-      };
+      // 1. Extraemos los datos del botón primero
+      const id = button.getAttribute('data-id');
+      const nombre = button.getAttribute('data-nombre');
+      const precioUnitario = Number(button.getAttribute('data-precio'));
 
+      // 2. Obtenemos el carrito actual
       let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      cart.push(item);
 
-      // const itemExistente = cart.find(item => item.id === id);
-      // console.log("Existe? ", itemExistente);
-      
-      // if (itemExistente) {
-      //   // 2. Si existe, aumentamos qty y sumamos al precio acumulado
-      //   itemExistente.qty += 1;
-      //   itemExistente.totalPrice = itemExistente.qty * itemExistente.price;
-      // } else {
-      //   // 3. Si es nuevo, lo agregamos con qty 1
-      //   cart.push({
-      //     id: id,
-      //     name: name,
-      //     price: price,
-      //     totalPrice: totalPrice,
-      //     qty: 1
-      //   });
-      // }
+      // 3. BUSCAMOS si ya existe el producto en el carrito usando el ID
+      const itemExistente = cart.find(item => item.id === id);
 
+      if (itemExistente) {
+        // 4. SI EXISTE: Solo aumentamos la cantidad y recalculamos el total de esa línea
+        itemExistente.qty += 1;
+        itemExistente.totalPrice = itemExistente.qty * itemExistente.price;
+      } else {
+        // 5. SI NO EXISTE: Agregamos el objeto nuevo con qty 1
+        cart.push({
+          id: id,
+          name: nombre,
+          price: precioUnitario,
+          totalPrice: precioUnitario,
+          qty: 1
+        });
+      }
+
+      // 6. Guardamos el carrito actualizado
       localStorage.setItem('cart', JSON.stringify(cart));
 
-      // Disparamos un evento personalizado para que el Sidebar se entere
+      // 7. Notificamos al Sidebar
       window.dispatchEvent(new Event('cart-updated'));
       
-      // Feedback visual (opcional)
+      if (window.openCartSidebar) {
+        window.openCartSidebar();
+      }
+      // Feedback visual
+      const originalText = button.innerText;
       button.innerText = "¡Añadido!";
-      setTimeout(() => button.innerText = "Agregar al pedido", 1000);
+      button.classList.add('bg-green-600'); // Opcional: cambio de color rápido
+      
+      setTimeout(() => {
+        button.innerText = originalText;
+        button.classList.remove('bg-green-600');
+      }, 1000);
     });
   });
+
+  window.updateQty = function(id, change) {
+    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    
+    // Buscamos el item por su ID
+    const item = cart.find(i => i.id === id);
+    
+    if (item) {
+      item.qty += change;
+
+      // Si la cantidad baja de 1, eliminamos el producto del carrito
+      if (item.qty <= 0) {
+        cart = cart.filter(i => i.id !== id);
+      } else {
+        // Actualizamos el precio total de esa línea
+        item.totalPrice = item.qty * item.price;
+      }
+      
+      localStorage.setItem('cart', JSON.stringify(cart));
+      
+      // Re-renderizamos el sidebar para que se vean los cambios
+      if (typeof renderCart === 'function') {
+        renderCart();
+      }
+      
+      // Opcional: Notificar a otros componentes
+      window.dispatchEvent(new Event('cart-updated'));
+    }
+  };
+
+  // Asegúrate de que tu función removeFromCart también use el ID
+  window.removeFromCart = function(id) {
+    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    cart = cart.filter(i => i.id !== id);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    renderCart();
+    window.dispatchEvent(new Event('cart-updated'));
+  };
 </script>
