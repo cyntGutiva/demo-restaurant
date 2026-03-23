@@ -5,11 +5,13 @@ import '../styles/global.css';
 interface Props {
 	title?: string;
 	description?: string;
+	showCart?: boolean;
 }
 
 const { 
 	title = "Fried Chicken | El Mejor Pollo Frito de Santiago", 
-	description = "Disfruta del sabor inigualable de Fried Chicken en Santiago. Pollo crujiente, hamburguesas premium y combos familiares con delivery." 
+	description = "Disfruta del sabor inigualable de Fried Chicken en Santiago. Pollo crujiente, hamburguesas premium y combos familiares con delivery.",
+	showCart = true
 } = Astro.props;
 ---
 
@@ -35,6 +37,7 @@ const {
 	<body class="bg-angus-black text-gray-100 selection:bg-angus-orange selection:text-white">
 		
 		<slot />
+		{showCart && <CartSidebar />}
 
 		<script>
 			import { createIcons, Flame, Phone, Menu, Star, BookOpen, PhoneCall, CheckCircle2, Truck, Store, Utensils, Clock, Instagram, Facebook, Image } from 'lucide';
@@ -78,6 +81,5 @@ const {
 				opacity: 0;
 			}
 		</style>
-		<CartSidebar />
 	</body>
 </html>

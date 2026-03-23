@@ -1,8 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
+// Accedemos a la variable de entorno
+const whatsappNumber = import.meta.env.PUBLIC_WHATSAPP_NUMBER;
+const whatsappLink = `https://wa.me/${whatsappNumber}`;
 ---
 
-<Layout title="Finalizar Pedido | Angus Chicken">
+<Layout title="Finalizar Pedido | Angus Chicken" showCart={false}>
   <main class="py-20 bg-black text-white px-4">
     <div class="max-w-2xl mx-auto">
       <h1 class="text-3xl font-bold mb-8 font-heading text-center">Resumen de tu <span class="text-angus-red">Pedido</span></h1>
@@ -10,7 +13,7 @@ import Layout from '../layouts/Layout.astro';
       <div id="cart-summary" class="bg-zinc-900/50 rounded-2xl border border-white/5 p-6 mb-10 space-y-4">
         </div>
 
-      <form id="order-form" class="space-y-6 bg-zinc-900 p-8 rounded-2xl border border-white/5 shadow-2xl">
+      <form id="order-form" class="space-y-6 bg-zinc-900 p-8 rounded-2xl border border-white/5 shadow-2xl" data-whatsapp-link={whatsappLink}>
         <h3 class="text-xl font-bold mb-4 border-b border-white/10 pb-2">Datos de Entrega</h3>
         
         <div>
@@ -40,86 +43,67 @@ import Layout from '../layouts/Layout.astro';
   </main>
 </Layout>
 
-<script is:inline>
+<script>
+  // Al no ser inline, este código se ejecuta una vez que el DOM está listo
   const summaryDiv = document.getElementById('cart-summary');
+  const orderForm = document.getElementById('order-form') as HTMLFormElement;
   const cart = JSON.parse(localStorage.getItem('cart') || '[]');
   let totalFinal = 0;
 
-  // 1. Renderizar el resumen con cantidades y precios
-  if (cart.length === 0) {
-    summaryDiv.innerHTML = `
-      <div class="text-center py-10">
-        <p class="text-gray-500 mb-4">Tu carrito está vacío.</p>
-        <a href="/" class="text-angus-red font-bold underline">Volver al menú</a>
-      </div>
-    `;
-    document.getElementById('order-form').classList.add('opacity-50', 'pointer-events-none');
-  } else {
-    let htmlContent = '';
-    
-    cart.forEach(item => {
-      const subtotalItem = Number(item.price) * item.qty;
-      totalFinal += subtotalItem;
+  // 1. Renderizar Resumen
+  if (summaryDiv) {
+    if (cart.length === 0) {
+      summaryDiv.innerHTML = `<p class="text-center py-10 text-gray-500">Carrito vacío</p>`;
+      orderForm?.classList.add('opacity-50', 'pointer-events-none');
+    } else {
+      let htmlContent = '';
+      cart.forEach(item => {
+        const subtotalItem = Number(item.price) * item.qty;
+        totalFinal += subtotalItem;
+        htmlContent += `
+          <div class="flex justify-between items-center border-b border-white/5 pb-4">
+            <div class="flex flex-col">
+              <div class="flex items-center gap-2">
+                <span class="text-angus-red font-black text-xl italic">${item.qty}x</span>
+                <span class="text-white font-bold text-lg">${item.name}</span>
+              </div>
+              <span class="text-gray-500 text-xs">$${Number(item.price).toLocaleString('es-CL')} c/u</span>
+            </div>
+            <span class="font-bold text-angus-orange">$${subtotalItem.toLocaleString('es-CL')}</span>
+          </div>`;
+      });
       
       htmlContent += `
-        <div class="flex justify-between items-center border-white/5 pb-4 last:border-0 last:pb-0">
-        <div class="flex flex-col">
-          <div class="flex items-center gap-2">
-            <span class="text-angus-red font-black text-xl italic">${item.qty}x</span>
-            <span class="text-white font-bold text-lg">${item.name}</span>
-          </div>
-          
-          <span class="text-gray-500 text-xs ml-1">
-            $${Number(item.price).toLocaleString('es-CL')} c/u
-          </span>
-        </div>
-
-        <span class="font-bold text-angus-orange text-md">
-          $${subtotalItem.toLocaleString('es-CL')}
-        </span>
-      </div>
-      `;
-    });
-
-    htmlContent += `
-      <div class="pt-4 mt-4 border-t-2 border-white/10 flex justify-between items-center">
-        <span class="text-xl font-bold">Total a Pagar</span>
-        <span class="font-bold text-angus-orange">$${totalFinal.toLocaleString('es-CL')}</span>
-      </div>
-    `;
-    
-    summaryDiv.innerHTML = htmlContent;
+        <div class="pt-4 mt-4 border-t-2 border-white/10 flex justify-between items-center text-xl font-bold">
+          <span>Total a Pagar</span>
+          <span class="text-angus-red font-black">$${totalFinal.toLocaleString('es-CL')}</span>
+        </div>`;
+      summaryDiv.innerHTML = htmlContent;
+    }
   }
 
-  // 2. Manejar el envío por WhatsApp
-  document.getElementById('order-form').addEventListener('submit', (e) => {
+  // 2. Manejar Envío
+  orderForm?.addEventListener('submit', (e) => {
     e.preventDefault();
     
-    const cliente = document.getElementById('nombre-cliente').value;
-    const telefono = document.getElementById('telefono-cliente').value;
-    const direccion = document.getElementById('direccion-cliente').value;
+    // Obtenemos el link que pasamos desde Astro
+    const whatsappBaseUrl = orderForm.getAttribute('data-whatsapp-link');
+    
+    const cliente = (document.getElementById('nombre-cliente') as HTMLInputElement).value;
+    const telefono = (document.getElementById('telefono-cliente') as HTMLInputElement).value;
+    const direccion = (document.getElementById('direccion-cliente') as HTMLTextAreaElement).value;
 
-    // Formatear lista detallada para WhatsApp
     const listaProductos = cart.map(item => 
       `• ${item.qty}x ${item.name} ($${(item.price * item.qty).toLocaleString('es-CL')})`
     ).join('%0A');
-    
-    const totalTexto = `$${totalFinal.toLocaleString('es-CL')}`;
     
     const mensaje = `*NUEVO PEDIDO - ANGUS CHICKEN*%0A%0A` +
                    `*Cliente:* ${cliente}%0A` +
                    `*Teléfono:* ${telefono}%0A` +
                    `*Dirección:* ${direccion}%0A%0A` +
-                   `*Detalle del Pedido:*%0A${listaProductos}%0A%0A` +
-                   `*TOTAL A PAGAR:* ${totalTexto}%0A%0A` +
-                   `_Por favor, confirma la recepción de este pedido._`;
+                   `*Detalle:*%0A${listaProductos}%0A%0A` +
+                   `*TOTAL:* $${totalFinal.toLocaleString('es-CL')}`;
 
-    // Reemplaza con el número de Angus Chicken (formato: 569XXXXXXXX)
-    const whatsappUrl = `https://wa.me/569XXXXXXXX?text=${mensaje}`;
-    
-    window.open(whatsappUrl, '_blank');
-    
-    // Opcional: Vaciar carrito tras el pedido exitoso
-    // localStorage.removeItem('cart');
+    window.open(`${whatsappBaseUrl}?text=${mensaje}`, '_blank');
   });
 </script>
