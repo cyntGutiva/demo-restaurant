@@ -1,19 +1,27 @@
 ---
-// import { pool } from '../lib/mysql';
+import { supabase } from "../lib/supabase";
 
-// let menuItems = [];
-// let error = null;
+let productos = [];
+let error = null;
 
-// try {
-//   const [rows]: any = await pool.query('SELECT * FROM menu_items ORDER BY id DESC');
-//   menuItems = rows;
+try {
+  const { data, error: sbError } = await supabase
+    .from("productos")
+    .select(
+      `
+      *,
+      categorias (nombre)
+    `,
+    )
+    .eq("disponible", true)
+    .order("orden", { ascending: true });
 
-// } catch (e) {
-//   error = e.message;
-//   console.error("Error en BD:", e);
-// }
-
-// const hasItems = menuItems && menuItems.length > 0;
+  if (sbError) throw sbError;
+  productos = data || [];
+} catch (e) {
+  error = e.message;
+  console.error("Error en BD:", e);
+}
 ---
 
 <section id="menu" class="py-24 bg-angus-dark relative">
@@ -29,69 +37,77 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
-      <!-- {hasItems ? (
-        menuItems.map((item) => {
-          // FORZAR FORMATO CHILENO: 
-          // Convertimos a número por si la BD lo devuelve como string
-          const precioNumerico = Number(item.price);
-          const precioFormateado = new Intl.NumberFormat('es-CL', {
-            style: 'currency',
-            currency: 'CLP',
-            minimumFractionDigits: 0
-          }).format(precioNumerico);
+      {
+        productos.length > 0 ? (
+          productos.map((item) => {
+            const precioFormateado = new Intl.NumberFormat("es-CL", {
+              style: "currency",
+              currency: "CLP",
+              minimumFractionDigits: 0,
+            }).format(item.precio);
 
-          return (
-            <div class="menu-card bg-angus-black rounded-2xl overflow-hidden border border-white/5 hover:border-white/10 transition-all duration-300 hover:-translate-y-2 group">
-              <div class="h-48 overflow-hidden relative bg-gray-800">
-                {item.image_url ? (
-                  <img 
-                    src={item.image_url} 
-                    alt={item.name} 
-                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-                  />
-                ) : (
-                  <div class="w-full h-full flex items-center justify-center bg-zinc-900">
-                    <span class="text-zinc-700 text-xs">Fried Chicken</span>
+            return (
+              <div class="menu-card bg-angus-black rounded-2xl overflow-hidden border border-white/5 hover:border-white/10 transition-all duration-300 hover:-translate-y-2 group">
+                <div class="h-48 overflow-hidden relative bg-gray-800">
+                  {item.image_url ? (
+                    <img
+                      src={item.image_url}
+                      alt={item.nombre}
+                      class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div class="w-full h-full flex items-center justify-center bg-zinc-900">
+                      <span class="text-zinc-700 text-xs">Fried Chicken</span>
+                    </div>
+                  )}
+
+                  <div class="absolute top-4 right-4 bg-angus-red text-white px-3 py-1 rounded-full font-bold shadow-lg">
+                    {precioFormateado}
                   </div>
-                )}
-                
-                <div class="absolute top-4 right-4 bg-angus-red text-white px-3 py-1 rounded-full font-bold shadow-lg">
-                  {precioFormateado}
+
+                  {item.destacado && (
+                    <div class="absolute top-4 left-4 bg-angus-orange text-white text-xs px-2 py-1 rounded font-bold uppercase">
+                      Popular
+                    </div>
+                  )}
+
+                  {item.stock === 0 && (
+                    <div class="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <span class="text-white font-bold text-sm">Agotado</span>
+                    </div>
+                  )}
                 </div>
 
-                {item.category === 'Destacado' && (
-                  <div class="absolute top-4 left-4 bg-angus-orange text-white text-xs px-2 py-1 rounded font-bold uppercase">
-                    Popular
-                  </div>
-                )}
+                <div class="p-6">
+                  <h3 class="text-xl font-bold text-white mb-2 group-hover:text-angus-orange transition-colors">
+                    {item.nombre}
+                  </h3>
+                  <p class="text-gray-400 text-sm mb-4 line-clamp-2">
+                    {item.descripcion}
+                  </p>
+                  <button
+                    class="add-to-cart-btn w-full py-2 rounded-lg border border-white/10 text-center text-white font-medium hover:bg-white hover:text-angus-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    data-id={item.id}
+                    data-nombre={item.nombre}
+                    data-precio={item.precio}
+                    disabled={item.stock === 0}
+                  >
+                    {item.stock === 0 ? "Agotado" : "Agregar al pedido"}
+                  </button>
+                </div>
               </div>
-
-              <div class="p-6">
-                <h3 class="text-xl font-bold text-white mb-2 group-hover:text-angus-orange transition-colors">
-                  {item.name}
-                </h3>
-                <p class="text-gray-400 text-sm mb-4 line-clamp-2">
-                  {item.description}
-                </p>
-                <button 
-                  class="add-to-cart-btn w-full py-2 rounded-lg border border-white/10 text-center text-white font-medium hover:bg-white hover:text-angus-black transition-colors"
-                  data-id={item.id}
-                  data-nombre={item.name}
-                  data-precio={item.price}
-                >
-                  Agregar al pedido
-                </button>
-              </div>
-            </div>
-          );
-        })
-      ) : (
-        <div class="col-span-full text-center py-20 border border-dashed border-white/10 rounded-2xl">
-          <p class="text-gray-500">
-            {error ? `Error de conexión: ${error}` : "No se encontraron productos en la base de datos."}
-          </p>
-        </div>
-      )} -->
+            );
+          })
+        ) : (
+          <div class="col-span-full text-center py-20 border border-dashed border-white/10 rounded-2xl">
+            <p class="text-gray-500">
+              {error
+                ? `Error de conexión: ${error}`
+                : "No se encontraron productos."}
+            </p>
+          </div>
+        )
+      }
     </div>
   </div>
 </section>
