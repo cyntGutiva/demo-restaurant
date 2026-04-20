@@ -1,29 +1,35 @@
 ---
-import { pool } from '../lib/mysql';
+// import { pool } from '../lib/mysql';
 
-let menuItems = [];
-let error = null;
+// let menuItems = [];
+// let error = null;
 
-try {
-  const [rows]: any = await pool.query('SELECT * FROM menu_items ORDER BY id DESC');
-  menuItems = rows;
-  
-} catch (e) {
-  error = e.message;
-  console.error("Error en BD:", e);
-}
+// try {
+//   const [rows]: any = await pool.query('SELECT * FROM menu_items ORDER BY id DESC');
+//   menuItems = rows;
 
-const hasItems = menuItems && menuItems.length > 0;
+// } catch (e) {
+//   error = e.message;
+//   console.error("Error en BD:", e);
+// }
+
+// const hasItems = menuItems && menuItems.length > 0;
 ---
+
 <section id="menu" class="py-24 bg-angus-dark relative">
   <div class="max-w-7xl mx-auto px-6">
     <div class="text-center mb-16">
-      <h2 class="text-4xl font-heading font-bold text-white mb-4">Nuestra Carta</h2>
-      <p class="text-gray-400 max-w-2xl mx-auto">Elige tu combinación favorita. Desde pollos enteros hasta hamburguesas bañadas en cheddar.</p>
+      <h2 class="text-4xl font-heading font-bold text-white mb-4">
+        Nuestra Carta
+      </h2>
+      <p class="text-gray-400 max-w-2xl mx-auto">
+        Elige tu combinación favorita. Desde pollos enteros hasta hamburguesas
+        bañadas en cheddar.
+      </p>
     </div>
-    
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
-      {hasItems ? (
+      <!-- {hasItems ? (
         menuItems.map((item) => {
           // FORZAR FORMATO CHILENO: 
           // Convertimos a número por si la BD lo devuelve como string
@@ -85,24 +91,24 @@ const hasItems = menuItems && menuItems.length > 0;
             {error ? `Error de conexión: ${error}` : "No se encontraron productos en la base de datos."}
           </p>
         </div>
-      )}
+      )} -->
     </div>
   </div>
 </section>
 
 <script is:inline>
-  document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-    button.addEventListener('click', () => {
+  document.querySelectorAll(".add-to-cart-btn").forEach((button) => {
+    button.addEventListener("click", () => {
       // 1. Extraemos los datos del botón primero
-      const id = button.getAttribute('data-id');
-      const nombre = button.getAttribute('data-nombre');
-      const precioUnitario = Number(button.getAttribute('data-precio'));
+      const id = button.getAttribute("data-id");
+      const nombre = button.getAttribute("data-nombre");
+      const precioUnitario = Number(button.getAttribute("data-precio"));
 
       // 2. Obtenemos el carrito actual
-      let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      let cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
       // 3. BUSCAMOS si ya existe el producto en el carrito usando el ID
-      const itemExistente = cart.find(item => item.id === id);
+      const itemExistente = cart.find((item) => item.id === id);
 
       if (itemExistente) {
         // 4. SI EXISTE: Solo aumentamos la cantidad y recalculamos el total de esa línea
@@ -115,66 +121,66 @@ const hasItems = menuItems && menuItems.length > 0;
           name: nombre,
           price: precioUnitario,
           totalPrice: precioUnitario,
-          qty: 1
+          qty: 1,
         });
       }
 
       // 6. Guardamos el carrito actualizado
-      localStorage.setItem('cart', JSON.stringify(cart));
+      localStorage.setItem("cart", JSON.stringify(cart));
 
       // 7. Notificamos al Sidebar
-      window.dispatchEvent(new Event('cart-updated'));
-      
+      window.dispatchEvent(new Event("cart-updated"));
+
       if (window.openCartSidebar) {
         window.openCartSidebar();
       }
       // Feedback visual
       const originalText = button.innerText;
       button.innerText = "¡Añadido!";
-      button.classList.add('bg-green-600'); // Opcional: cambio de color rápido
-      
+      button.classList.add("bg-green-600"); // Opcional: cambio de color rápido
+
       setTimeout(() => {
         button.innerText = originalText;
-        button.classList.remove('bg-green-600');
+        button.classList.remove("bg-green-600");
       }, 1000);
     });
   });
 
-  window.updateQty = function(id, change) {
-    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    
+  window.updateQty = function (id, change) {
+    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+
     // Buscamos el item por su ID
-    const item = cart.find(i => i.id === id);
-    
+    const item = cart.find((i) => i.id === id);
+
     if (item) {
       item.qty += change;
 
       // Si la cantidad baja de 1, eliminamos el producto del carrito
       if (item.qty <= 0) {
-        cart = cart.filter(i => i.id !== id);
+        cart = cart.filter((i) => i.id !== id);
       } else {
         // Actualizamos el precio total de esa línea
         item.totalPrice = item.qty * item.price;
       }
-      
-      localStorage.setItem('cart', JSON.stringify(cart));
-      
+
+      localStorage.setItem("cart", JSON.stringify(cart));
+
       // Re-renderizamos el sidebar para que se vean los cambios
-      if (typeof renderCart === 'function') {
+      if (typeof renderCart === "function") {
         renderCart();
       }
-      
+
       // Opcional: Notificar a otros componentes
-      window.dispatchEvent(new Event('cart-updated'));
+      window.dispatchEvent(new Event("cart-updated"));
     }
   };
 
   // Asegúrate de que tu función removeFromCart también use el ID
-  window.removeFromCart = function(id) {
-    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    cart = cart.filter(i => i.id !== id);
-    localStorage.setItem('cart', JSON.stringify(cart));
+  window.removeFromCart = function (id) {
+    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    cart = cart.filter((i) => i.id !== id);
+    localStorage.setItem("cart", JSON.stringify(cart));
     renderCart();
-    window.dispatchEvent(new Event('cart-updated'));
+    window.dispatchEvent(new Event("cart-updated"));
   };
 </script>
