@@ -1,23 +1,34 @@
 ---
 import { supabase } from "../lib/supabase";
 
-let productos = [];
+let categoriasConProductos: any[] = [];
 let error = null;
 
 try {
   const { data, error: sbError } = await supabase
-    .from("productos")
+    .from("categorias")
     .select(
       `
-      *,
-      categorias (nombre)
+      id,
+      nombre,
+      orden,
+      productos (
+        *,
+        categorias (nombre)
+      )
     `,
     )
-    .eq("disponible", true)
-    .order("orden", { ascending: true });
+    .order("orden", { ascending: true }) // Orden de las categorías
+    .order("orden", { foreignTable: "productos", ascending: true }); // Orden de productos dentro
 
   if (sbError) throw sbError;
-  productos = data || [];
+  // Filtramos para no mostrar categorías vacías o productos no disponibles
+  categoriasConProductos = data
+    .map((cat) => ({
+      ...cat,
+      productos: cat.productos.filter((p) => p.disponible),
+    }))
+    .filter((cat) => cat.productos.length > 0);
 } catch (e) {
   error = e.message;
   console.error("Error en BD:", e);
@@ -30,173 +41,149 @@ try {
       <h2 class="text-4xl font-heading font-bold text-white mb-4">
         Nuestra Carta
       </h2>
-      <p class="text-gray-400 max-w-2xl mx-auto">
-        Elige tu combinación favorita. Desde pollos enteros hasta hamburguesas
-        bañadas en cheddar.
-      </p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
-      {
-        productos.length > 0 ? (
-          productos.map((item) => {
-            const precioFormateado = new Intl.NumberFormat("es-CL", {
-              style: "currency",
-              currency: "CLP",
-              minimumFractionDigits: 0,
-            }).format(item.precio);
+    {
+      categoriasConProductos.length > 0 ? (
+        categoriasConProductos.map((cat) => (
+          <div class="mb-20">
+            <div class="flex items-center gap-4 mb-10">
+              <h3 class="text-2xl font-bold text-angus-orange uppercase tracking-wider">
+                {cat.nombre}
+              </h3>
+              <div class="h-px bg-white/10 flex-1" />
+            </div>
 
-            return (
-              <div class="menu-card bg-angus-black rounded-2xl overflow-hidden border border-white/5 hover:border-white/10 transition-all duration-300 hover:-translate-y-2 group flex flex-col">
-                <div class="h-48 overflow-hidden relative bg-gray-800">
-                  {item.image_url ? (
-                    <img
-                      src={item.image_url}
-                      alt={item.nombre}
-                      class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                  ) : (
-                    <div class="w-full h-full flex items-center justify-center bg-zinc-900">
-                      <span class="text-zinc-700 text-xs">Fried Chicken</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {cat.productos.map((item) => {
+                const precioFormateado = new Intl.NumberFormat("es-CL", {
+                  style: "currency",
+                  currency: "CLP",
+                  minimumFractionDigits: 0,
+                }).format(item.precio);
+
+                return (
+                  <div class="menu-card bg-angus-black rounded-2xl overflow-hidden border border-white/5 hover:border-white/10 transition-all duration-300 group flex flex-col">
+                    {/* ... Resto de tu diseño de tarjeta (Imagen, Título, etc.) ... */}
+                    <div class="h-48 overflow-hidden relative bg-gray-800">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.nombre}
+                          class="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                        />
+                      ) : (
+                        <div class="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-700 text-xs">
+                          Fried Chicken
+                        </div>
+                      )}
+                      <div class="absolute top-4 right-4 bg-angus-red text-white px-3 py-1 rounded-full font-bold">
+                        {precioFormateado}
+                      </div>
                     </div>
-                  )}
 
-                  <div class="absolute top-4 right-4 bg-angus-red text-white px-3 py-1 rounded-full font-bold shadow-lg">
-                    {precioFormateado}
+                    <div class="p-6 flex flex-col flex-1">
+                      <h3 class="text-xl font-bold text-white mb-2">
+                        {item.nombre}
+                      </h3>
+                      <p class="text-gray-400 text-sm mb-4 line-clamp-2">
+                        {item.descripcion}
+                      </p>
+                      <button
+                        class="add-to-cart-btn w-full py-2 rounded-lg border border-white/10 text-white hover:bg-white hover:text-angus-black transition-colors mt-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                        data-id={item.id}
+                        data-nombre={item.nombre}
+                        data-precio={item.precio}
+                        data-stock={item.stock}
+                        disabled={item.stock === 0}
+                      >
+                        {item.stock <= 0 ? "Agotado" : "Agregar al pedido"}
+                      </button>
+                    </div>
                   </div>
-
-                  {item.destacado && (
-                    <div class="absolute top-4 left-4 bg-angus-orange text-white text-xs px-2 py-1 rounded font-bold uppercase">
-                      Popular
-                    </div>
-                  )}
-
-                  {item.stock === 0 && (
-                    <div class="absolute inset-0 bg-black/60 flex items-center justify-center">
-                      <span class="text-white font-bold text-sm">Agotado</span>
-                    </div>
-                  )}
-                </div>
-
-                <div class="p-6 flex flex-col flex-1">
-                  <h3 class="text-xl font-bold text-white mb-2 group-hover:text-angus-orange transition-colors">
-                    {item.nombre}
-                  </h3>
-                  <p class="text-gray-400 text-sm mb-4 line-clamp-2">
-                    {item.descripcion}
-                  </p>
-                  <button
-                    class="add-to-cart-btn w-full py-2 rounded-lg border border-white/10 text-center text-white font-medium hover:bg-white hover:text-angus-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-auto"
-                    data-id={item.id}
-                    data-nombre={item.nombre}
-                    data-precio={item.precio}
-                    disabled={item.stock === 0}
-                  >
-                    {item.stock === 0 ? "Agotado" : "Agregar al pedido"}
-                  </button>
-                </div>
-              </div>
-            );
-          })
-        ) : (
-          <div class="col-span-full text-center py-20 border border-dashed border-white/10 rounded-2xl">
-            <p class="text-gray-500">
-              {error
-                ? `Error de conexión: ${error}`
-                : "No se encontraron productos."}
-            </p>
+                );
+              })}
+            </div>
           </div>
-        )
-      }
-    </div>
+        ))
+      ) : (
+        <div class="text-center py-20 border border-dashed border-white/10 rounded-2xl text-gray-500">
+          {error ? `Error: ${error}` : "No hay productos disponibles."}
+        </div>
+      )
+    }
   </div>
 </section>
 
 <script is:inline>
-  document.querySelectorAll(".add-to-cart-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      // 1. Extraemos los datos del botón primero
-      const id = button.getAttribute("data-id");
-      const nombre = button.getAttribute("data-nombre");
-      const precioUnitario = Number(button.getAttribute("data-precio"));
+  function initCartButtons() {
+    document.querySelectorAll(".add-to-cart-btn").forEach((button) => {
+      // Clonar para limpiar eventos previos
+      const newButton = button.cloneNode(true);
+      button.parentNode.replaceChild(newButton, button);
 
-      // 2. Obtenemos el carrito actual
-      let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      newButton.addEventListener("click", (e) => {
+        const btn = e.currentTarget;
+        const id = btn.getAttribute("data-id");
+        const nombre = btn.getAttribute("data-nombre");
+        const precioUnitario = Number(btn.getAttribute("data-precio"));
+        const stockMax = Number(btn.getAttribute("data-stock")); // Capturamos stock
 
-      // 3. BUSCAMOS si ya existe el producto en el carrito usando el ID
-      const itemExistente = cart.find((item) => item.id === id);
+        let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+        const itemExistente = cart.find((item) => item.id === id);
 
-      if (itemExistente) {
-        // 4. SI EXISTE: Solo aumentamos la cantidad y recalculamos el total de esa línea
-        itemExistente.qty += 1;
-        itemExistente.totalPrice = itemExistente.qty * itemExistente.price;
-      } else {
-        // 5. SI NO EXISTE: Agregamos el objeto nuevo con qty 1
-        cart.push({
-          id: id,
-          name: nombre,
-          price: precioUnitario,
-          totalPrice: precioUnitario,
-          qty: 1,
-        });
-      }
+        // --- VERIFICACIÓN DE STOCK ---
+        if (stockMax !== -1) {
+          // -1 significa ilimitado según tu modelo
+          const qtyEnCarrito = itemExistente ? itemExistente.qty : 0;
 
-      // 6. Guardamos el carrito actualizado
-      localStorage.setItem("cart", JSON.stringify(cart));
+          if (qtyEnCarrito >= stockMax) {
+            // Si ya no hay más stock, avisamos y no hacemos nada
+            const textoOriginal = btn.innerText;
+            btn.innerText = "Sin stock disponible";
+            btn.classList.add("text-red-400");
+            setTimeout(() => {
+              btn.innerText = textoOriginal;
+              btn.classList.remove("text-red-400");
+            }, 2000);
+            return;
+          }
+        }
 
-      // 7. Notificamos al Sidebar
-      window.dispatchEvent(new Event("cart-updated"));
+        if (itemExistente) {
+          itemExistente.qty += 1;
+          itemExistente.totalPrice = itemExistente.qty * itemExistente.price;
+        } else {
+          cart.push({
+            id: id,
+            name: nombre,
+            price: precioUnitario,
+            totalPrice: precioUnitario,
+            qty: 1,
+            stock: stockMax,
+          });
+        }
 
-      if (window.openCartSidebar) {
-        window.openCartSidebar();
-      }
-      // Feedback visual
-      const originalText = button.innerText;
-      button.innerText = "¡Añadido!";
-      button.classList.add("bg-green-600"); // Opcional: cambio de color rápido
+        localStorage.setItem("cart", JSON.stringify(cart));
+        window.dispatchEvent(new Event("cart-updated"));
 
-      setTimeout(() => {
-        button.innerText = originalText;
-        button.classList.remove("bg-green-600");
-      }, 1000);
+        if (window.openCartSidebar) window.openCartSidebar();
+
+        // Feedback de éxito
+        const originalText = btn.innerText;
+        btn.innerText = "¡Añadido!";
+        btn.classList.add("bg-green-600");
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.classList.remove("bg-green-600");
+        }, 1000);
+      });
     });
-  });
+  }
 
-  window.updateQty = function (id, change) {
-    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+  initCartButtons();
 
-    // Buscamos el item por su ID
-    const item = cart.find((i) => i.id === id);
-
-    if (item) {
-      item.qty += change;
-
-      // Si la cantidad baja de 1, eliminamos el producto del carrito
-      if (item.qty <= 0) {
-        cart = cart.filter((i) => i.id !== id);
-      } else {
-        // Actualizamos el precio total de esa línea
-        item.totalPrice = item.qty * item.price;
-      }
-
-      localStorage.setItem("cart", JSON.stringify(cart));
-
-      // Re-renderizamos el sidebar para que se vean los cambios
-      if (typeof renderCart === "function") {
-        renderCart();
-      }
-
-      // Opcional: Notificar a otros componentes
-      window.dispatchEvent(new Event("cart-updated"));
-    }
-  };
-
-  // Asegúrate de que tu función removeFromCart también use el ID
-  window.removeFromCart = function (id) {
-    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    cart = cart.filter((i) => i.id !== id);
-    localStorage.setItem("cart", JSON.stringify(cart));
-    renderCart();
-    window.dispatchEvent(new Event("cart-updated"));
-  };
+  // Si también tienes funciones de sumar/restar en el Sidebar (updateQty),
+  // deberías pasarle el stock a esa función también para que no permita
+  // subir el contador más allá del stock disponible.
 </script>

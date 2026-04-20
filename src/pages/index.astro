@@ -1,40 +1,54 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import Navbar from '../components/Navbar.astro';
-import Hero from '../components/Hero.astro';
-import About from '../components/About.astro';
-import MenuCard from '../components/MenuCard.astro';
-import Services from '../components/Services.astro';
-import Location from '../components/Location.astro';
-import Footer from '../components/Footer.astro';
+import { supabase } from "../lib/supabase";
+
+import Layout from "../layouts/Layout.astro";
+import Navbar from "../components/Navbar.astro";
+import Hero from "../components/Hero.astro";
+import About from "../components/About.astro";
+import MenuCard from "../components/MenuCard.astro";
+import Services from "../components/Services.astro";
+import Location from "../components/Location.astro";
+import Footer from "../components/Footer.astro";
+const { data: infoData, error } = await supabase
+  .from("info_tienda")
+  .select("*");
+// Transformamos el array en un objeto clave-valor para acceso rápido
+const info = {};
+infoData?.forEach((item) => {
+  info[item.clave] = item.valor;
+});
 ---
 
 <Layout title="Fried Chicken | Santiago Centro">
   <Navbar />
-  <Hero />
+  <Hero info={info} />
   <About />
   <MenuCard />
 
   <Services />
   <Location />
-  <Footer />
+  <Footer info={info} />
 </Layout>
 
 <script>
   // @ts-ignore
   const { gsap, ScrollTrigger } = window;
-  
+
   if (gsap && ScrollTrigger) {
     gsap.registerPlugin(ScrollTrigger);
 
     // Animación About
     gsap.to(".about-image", {
       scrollTrigger: { trigger: ".about-image", start: "top 80%" },
-      opacity: 1, x: 0, duration: 1
+      opacity: 1,
+      x: 0,
+      duration: 1,
     });
     gsap.to(".about-text", {
       scrollTrigger: { trigger: ".about-text", start: "top 80%" },
-      opacity: 1, x: 0, duration: 1
+      opacity: 1,
+      x: 0,
+      duration: 1,
     });
 
     // Animación Cascada para el Menú
@@ -47,7 +61,7 @@ import Footer from '../components/Footer.astro';
       opacity: 0,
       stagger: 0.2,
       duration: 0.8,
-      ease: "back.out(1.7)"
+      ease: "back.out(1.7)",
     });
   }
 </script>
