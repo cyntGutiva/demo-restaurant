@@ -1,0 +1,41 @@
+name: Deploy a HostGator
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Descarga el código del repo
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Instala Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      # 3. Instala dependencias
+      - name: Instalar dependencias
+        run: npm ci
+
+      # 4. Genera el sitio estático
+      - name: Build
+        run: npm run build
+
+      # 5. Sube los archivos generados a HostGator via FTP
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          local-dir: ./dist/ # carpeta que genera astro build
+          dangerous-clean-slate: false # true = borra todo antes de subir
