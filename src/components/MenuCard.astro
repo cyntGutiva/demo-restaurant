@@ -1,38 +1,10 @@
 ---
+// Importas tu cliente actual
 import { supabase } from "../lib/supabase";
 
-let categoriasConProductos: any[] = [];
-let error = null;
-
-try {
-  const { data, error: sbError } = await supabase
-    .from("categorias")
-    .select(
-      `
-      id,
-      nombre,
-      orden,
-      productos (
-        *,
-        categorias (nombre)
-      )
-    `,
-    )
-    .order("orden", { ascending: true }) // Orden de las categorías
-    .order("orden", { foreignTable: "productos", ascending: true }); // Orden de productos dentro
-
-  if (sbError) throw sbError;
-  // Filtramos para no mostrar categorías vacías o productos no disponibles
-  categoriasConProductos = data
-    .map((cat) => ({
-      ...cat,
-      productos: cat.productos.filter((p) => p.disponible),
-    }))
-    .filter((cat) => cat.productos.length > 0);
-} catch (e) {
-  error = e.message;
-  console.error("Error en BD:", e);
-}
+// Pasamos las credenciales al cliente de forma segura para el fetch
+const publicUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const publicAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 ---
 
 <section id="menu" class="py-24 bg-angus-dark relative">
@@ -43,161 +15,101 @@ try {
       </h2>
     </div>
 
-    {
-      categoriasConProductos.length > 0 ? (
-        categoriasConProductos.map((cat) => (
-          <div class="mb-20">
-            <div class="flex items-center gap-4 mb-10">
-              <h3 class="text-2xl font-bold text-angus-orange uppercase tracking-wider">
-                {cat.nombre}
-              </h3>
-              <div class="h-px bg-white/10 flex-1" />
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {cat.productos.map((item) => {
-                const precioFormateado = new Intl.NumberFormat("es-CL", {
-                  style: "currency",
-                  currency: "CLP",
-                  minimumFractionDigits: 0,
-                }).format(item.precio);
-
-                return (
-                  <div class="menu-card bg-angus-black rounded-2xl overflow-hidden border border-white/5 hover:border-white/10 transition-all duration-300 group flex flex-col">
-                    {/* ... Resto de tu diseño de tarjeta (Imagen, Título, etc.) ... */}
-                    <div class="h-48 overflow-hidden relative bg-gray-800">
-                      {item.image_url ? (
-                        <img
-                          src={item.image_url}
-                          alt={item.nombre}
-                          class="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                        />
-                      ) : (
-                        <div class="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-700 text-xs">
-                          Fried Chicken
-                        </div>
-                      )}
-                      <div class="absolute top-4 right-4 bg-angus-red text-white px-3 py-1 rounded-full font-bold">
-                        {precioFormateado}
-                      </div>
-                    </div>
-
-                    <div class="p-6 flex flex-col flex-1">
-                      <h3 class="text-xl font-bold text-white mb-2">
-                        {item.nombre}
-                      </h3>
-                      <p class="text-gray-400 text-sm mb-4 line-clamp-2">
-                        {item.descripcion}
-                      </p>
-                      <button
-                        class="add-to-cart-btn w-full py-2 rounded-lg border border-white/10 text-white hover:bg-white hover:text-angus-black transition-colors mt-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                        data-id={item.id}
-                        data-nombre={item.nombre}
-                        data-precio={item.precio}
-                        data-stock={item.stock}
-                        disabled={item.stock === 0}
-                      >
-                        {item.stock === 0 ? "Agotado" : "Agregar al pedido"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))
-      ) : (
-        <div class="text-center py-20 border border-dashed border-white/10 rounded-2xl text-gray-500">
-          {error ? `Error: ${error}` : "No hay productos disponibles."}
-        </div>
-      )
-    }
+    <div id="menu-dinamico" class="space-y-20">
+      <div class="text-center py-20 text-gray-500">Cargando delicias...</div>
+    </div>
   </div>
 </section>
 
-<script is:inline>
-  // --- 1. FUNCIÓN DE SINCRONIZACIÓN DE INTERFAZ ---
-  function actualizarBotonesStock() {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-
-    document.querySelectorAll(".add-to-cart-btn").forEach((btn) => {
-      const id = btn.getAttribute("data-id");
-      const stockMax = Number(btn.getAttribute("data-stock"));
-
-      // Si el stock es ilimitado, no hacemos nada
-      if (stockMax === -1) return;
-
-      const itemEnCarrito = cart.find((item) => String(item.id) === String(id));
-      const qtyEnCarrito = itemEnCarrito ? itemEnCarrito.qty : 0;
-
-      if (stockMax <= 0) {
-        // Caso: Agotado en base de datos
-        btn.disabled = true;
-        btn.innerText = "Agotado";
-        btn.classList.add("opacity-50");
-      } else if (qtyEnCarrito >= stockMax) {
-        // Caso: Ya agregó todo el stock disponible al carrito
-        btn.disabled = true;
-        btn.innerText = "Máximo alcanzado";
-        btn.classList.add("border-yellow-500/50", "text-yellow-500");
-      } else {
-        // Caso: Hay stock disponible (resetear por si eliminó algo del carrito)
-        btn.disabled = false;
-        btn.innerText = "Agregar al pedido";
-        btn.classList.remove(
-          "border-yellow-500/50",
-          "text-yellow-500",
-          "opacity-50",
-        );
-      }
-    });
-  }
-
-  // --- 2. DELEGACIÓN DE EVENTOS PARA CLICS ---
-  document.addEventListener("click", (e) => {
-    const btn = e.target.closest(".add-to-cart-btn");
-    if (!btn || btn.disabled) return;
-
-    const id = btn.getAttribute("data-id");
-    const nombre = btn.getAttribute("data-nombre");
-    const precio = Number(btn.getAttribute("data-precio"));
-    const stockMax = Number(btn.getAttribute("data-stock"));
-
-    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const itemExistente = cart.find((item) => String(item.id) === String(id));
-    const qtyEnCarrito = itemExistente ? itemExistente.qty : 0;
-
-    // Validación de seguridad extra
-    if (stockMax !== -1 && qtyEnCarrito >= stockMax) return;
-
-    if (itemExistente) {
-      itemExistente.qty += 1;
-      itemExistente.totalPrice = itemExistente.qty * itemExistente.price;
-    } else {
-      cart.push({
-        id: id,
-        name: nombre,
-        price: precio,
-        totalPrice: precio,
-        qty: 1,
-        stock: stockMax,
-      });
-    }
-
-    localStorage.setItem("cart", JSON.stringify(cart));
-
-    // Notificar cambios
-    window.dispatchEvent(new Event("cart-updated"));
-    if (window.openCartSidebar) window.openCartSidebar();
-
-    // Actualizar botones inmediatamente después de agregar
-    actualizarBotonesStock();
+<script is:inline define:vars={{ publicUrl, publicAnonKey }}>
+  // Función para formatear dinero en Chile
+  const formatter = new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    minimumFractionDigits: 0,
   });
 
-  // --- 3. INICIALIZACIÓN ---
-  // Escuchar cuando se actualiza el carrito (ej. si borran items desde el sidebar)
-  window.addEventListener("cart-updated", actualizarBotonesStock);
+  async function cargarMenu() {
+    const container = document.getElementById("menu-dinamico");
 
-  // Ejecutar al cargar la página
-  document.addEventListener("DOMContentLoaded", actualizarBotonesStock);
+    try {
+      // Usamos fetch directo para no cargar toda la librería de Supabase en el cliente
+      // pero usamos las credenciales de tu archivo de config
+      const response = await fetch(
+        `${publicUrl}/rest/v1/categorias?select=id,nombre,orden,productos(*)&order=orden.asc&productos.order=orden.asc`,
+        {
+          headers: {
+            apikey: publicAnonKey,
+            Authorization: `Bearer ${publicAnonKey}`,
+          },
+        },
+      );
+
+      const categorias = await response.json();
+      container.innerHTML = "";
+
+      categorias.forEach((cat) => {
+        const productosValidos = cat.productos.filter((p) => p.disponible);
+        if (productosValidos.length === 0) return;
+
+        let cardsHtml = productosValidos
+          .map(
+            (item) => `
+          <div class="menu-card bg-angus-black rounded-2xl overflow-hidden border border-white/5 flex flex-col group transition-all duration-300 hover:border-white/10">
+            <div class="h-48 overflow-hidden relative bg-gray-800">
+              ${
+                item.image_url
+                  ? `<img src="${item.image_url}" alt="${item.nombre}" class="w-full h-full object-cover group-hover:scale-110 transition-transform" loading="lazy" />`
+                  : `<div class="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-700 text-xs">NO IMAGE</div>`
+              }
+              <div class="absolute top-4 right-4 bg-angus-red text-white px-3 py-1 rounded-full font-bold shadow-lg">
+                ${formatter.format(item.precio)}
+              </div>
+            </div>
+
+            <div class="p-6 flex flex-col flex-1">
+              <h3 class="text-xl font-bold text-white mb-2">${item.nombre}</h3>
+              <p class="text-gray-400 text-sm mb-4 line-clamp-2">${item.descripcion || ""}</p>
+              
+              <button
+                class="add-to-cart-btn w-full py-2 rounded-lg border border-white/10 text-white hover:bg-white hover:text-angus-black transition-all mt-auto disabled:opacity-50 font-semibold"
+                data-id="${item.id}"
+                data-nombre="${item.nombre}"
+                data-precio="${item.precio}"
+                data-stock="${item.stock}"
+              >
+                ${item.stock <= 0 ? "Agotado" : "Agregar al pedido"}
+              </button>
+            </div>
+          </div>
+        `,
+          )
+          .join("");
+
+        container.innerHTML += `
+          <div class="category-block">
+            <div class="flex items-center gap-4 mb-10">
+              <h3 class="text-2xl font-bold text-angus-orange uppercase tracking-wider">${cat.nombre}</h3>
+              <div class="h-px bg-white/10 flex-1"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              ${cardsHtml}
+            </div>
+          </div>
+        `;
+      });
+
+      // ¡IMPORTANTE! Re-ejecutar la lógica de stock del carrito
+      if (window.actualizarBotonesStock) {
+        window.actualizarBotonesStock();
+      }
+    } catch (err) {
+      console.error("Error cargando el menú:", err);
+      container.innerHTML =
+        '<p class="text-center text-red-500">Error al conectar con la base de datos.</p>';
+    }
+  }
+
+  // Iniciamos la carga
+  document.addEventListener("DOMContentLoaded", cargarMenu);
 </script>
