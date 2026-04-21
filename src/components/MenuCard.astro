@@ -97,7 +97,7 @@ try {
                         data-stock={item.stock}
                         disabled={item.stock === 0}
                       >
-                        {item.stock <= 0 ? "Agotado" : "Agregar al pedido"}
+                        {item.stock === 0 ? "Agotado" : "Agregar al pedido"}
                       </button>
                     </div>
                   </div>
@@ -116,74 +116,88 @@ try {
 </section>
 
 <script is:inline>
-  function initCartButtons() {
-    document.querySelectorAll(".add-to-cart-btn").forEach((button) => {
-      // Clonar para limpiar eventos previos
-      const newButton = button.cloneNode(true);
-      button.parentNode.replaceChild(newButton, button);
+  // --- 1. FUNCIÓN DE SINCRONIZACIÓN DE INTERFAZ ---
+  function actualizarBotonesStock() {
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
-      newButton.addEventListener("click", (e) => {
-        const btn = e.currentTarget;
-        const id = btn.getAttribute("data-id");
-        const nombre = btn.getAttribute("data-nombre");
-        const precioUnitario = Number(btn.getAttribute("data-precio"));
-        const stockMax = Number(btn.getAttribute("data-stock")); // Capturamos stock
+    document.querySelectorAll(".add-to-cart-btn").forEach((btn) => {
+      const id = btn.getAttribute("data-id");
+      const stockMax = Number(btn.getAttribute("data-stock"));
 
-        let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-        const itemExistente = cart.find((item) => item.id === id);
+      // Si el stock es ilimitado, no hacemos nada
+      if (stockMax === -1) return;
 
-        // --- VERIFICACIÓN DE STOCK ---
-        if (stockMax !== -1) {
-          // -1 significa ilimitado según tu modelo
-          const qtyEnCarrito = itemExistente ? itemExistente.qty : 0;
+      const itemEnCarrito = cart.find((item) => String(item.id) === String(id));
+      const qtyEnCarrito = itemEnCarrito ? itemEnCarrito.qty : 0;
 
-          if (qtyEnCarrito >= stockMax) {
-            // Si ya no hay más stock, avisamos y no hacemos nada
-            const textoOriginal = btn.innerText;
-            btn.innerText = "Sin stock disponible";
-            btn.classList.add("text-red-400");
-            setTimeout(() => {
-              btn.innerText = textoOriginal;
-              btn.classList.remove("text-red-400");
-            }, 2000);
-            return;
-          }
-        }
-
-        if (itemExistente) {
-          itemExistente.qty += 1;
-          itemExistente.totalPrice = itemExistente.qty * itemExistente.price;
-        } else {
-          cart.push({
-            id: id,
-            name: nombre,
-            price: precioUnitario,
-            totalPrice: precioUnitario,
-            qty: 1,
-            stock: stockMax,
-          });
-        }
-
-        localStorage.setItem("cart", JSON.stringify(cart));
-        window.dispatchEvent(new Event("cart-updated"));
-
-        if (window.openCartSidebar) window.openCartSidebar();
-
-        // Feedback de éxito
-        const originalText = btn.innerText;
-        btn.innerText = "¡Añadido!";
-        btn.classList.add("bg-green-600");
-        setTimeout(() => {
-          btn.innerText = originalText;
-          btn.classList.remove("bg-green-600");
-        }, 1000);
-      });
+      if (stockMax <= 0) {
+        // Caso: Agotado en base de datos
+        btn.disabled = true;
+        btn.innerText = "Agotado";
+        btn.classList.add("opacity-50");
+      } else if (qtyEnCarrito >= stockMax) {
+        // Caso: Ya agregó todo el stock disponible al carrito
+        btn.disabled = true;
+        btn.innerText = "Máximo alcanzado";
+        btn.classList.add("border-yellow-500/50", "text-yellow-500");
+      } else {
+        // Caso: Hay stock disponible (resetear por si eliminó algo del carrito)
+        btn.disabled = false;
+        btn.innerText = "Agregar al pedido";
+        btn.classList.remove(
+          "border-yellow-500/50",
+          "text-yellow-500",
+          "opacity-50",
+        );
+      }
     });
   }
 
-  initCartButtons();
+  // --- 2. DELEGACIÓN DE EVENTOS PARA CLICS ---
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".add-to-cart-btn");
+    if (!btn || btn.disabled) return;
 
-  // Si también tienes funciones de sumar/restar en el Sidebar (updateQty),
-  // deberías pasarle el stock a esa función también para que no permita
-  // subir el contador más allá del stock disponible.
+    const id = btn.getAttribute("data-id");
+    const nombre = btn.getAttribute("data-nombre");
+    const precio = Number(btn.getAttribute("data-precio"));
+    const stockMax = Number(btn.getAttribute("data-stock"));
+
+    let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const itemExistente = cart.find((item) => String(item.id) === String(id));
+    const qtyEnCarrito = itemExistente ? itemExistente.qty : 0;
+
+    // Validación de seguridad extra
+    if (stockMax !== -1 && qtyEnCarrito >= stockMax) return;
+
+    if (itemExistente) {
+      itemExistente.qty += 1;
+      itemExistente.totalPrice = itemExistente.qty * itemExistente.price;
+    } else {
+      cart.push({
+        id: id,
+        name: nombre,
+        price: precio,
+        totalPrice: precio,
+        qty: 1,
+        stock: stockMax,
+      });
+    }
+
+    localStorage.setItem("cart", JSON.stringify(cart));
+
+    // Notificar cambios
+    window.dispatchEvent(new Event("cart-updated"));
+    if (window.openCartSidebar) window.openCartSidebar();
+
+    // Actualizar botones inmediatamente después de agregar
+    actualizarBotonesStock();
+  });
+
+  // --- 3. INICIALIZACIÓN ---
+  // Escuchar cuando se actualiza el carrito (ej. si borran items desde el sidebar)
+  window.addEventListener("cart-updated", actualizarBotonesStock);
+
+  // Ejecutar al cargar la página
+  document.addEventListener("DOMContentLoaded", actualizarBotonesStock);
 </script>

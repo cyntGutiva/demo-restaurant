@@ -6,14 +6,16 @@ import AdminCarta from "./AdminCarta";
 import AdminCategorias from "./AdminCategorias";
 import AdminHorarios from "./AdminHorarios";
 import AdminTienda from "./AdminTienda";
+import AdminServicios from "./AdminServicios";
 
-type Section = "carta" | "categorias" | "horarios" | "tienda";
+type Section = "carta" | "categorias" | "horarios" | "tienda" | "servicios";
 
 const navItems = [
   { id: "carta", label: "Carta", icon: "🍗" },
   { id: "categorias", label: "Categorías", icon: "📂" },
   { id: "horarios", label: "Horarios", icon: "🕐" },
   { id: "tienda", label: "Tienda", icon: "🏪" },
+  { id: "servicios", label: "Servicios", icon: "⚡" },
 ];
 
 export default function AdminDashboard() {
@@ -112,6 +114,7 @@ export default function AdminDashboard() {
         <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-6 overflow-auto">
           {section === "carta" && <AdminCarta />}
           {section === "categorias" && <AdminCategorias />}
+          {section === "servicios" && <AdminServicios />}
           {section === "horarios" && <AdminHorarios />}
           {section === "tienda" && <AdminTienda />}
         </main>

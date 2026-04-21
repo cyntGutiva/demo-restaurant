@@ -32,10 +32,6 @@ const GRUPOS = [
     ],
   },
   {
-    titulo: "Servicios disponibles",
-    claves: ["delivery_activo", "retiro_activo", "consumo_local_activo"],
-  },
-  {
     titulo: "Redes sociales",
     claves: ["instagram", "facebook", "google_maps_url"],
   },
@@ -208,6 +204,15 @@ export default function AdminTienda() {
             </div>
           </div>
         ))}
+      </div>
+      <div className="flex justify-end pt-8">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors shadow-lg shadow-orange-500/20"
+        >
+          {saving ? "Guardando..." : "Guardar cambios"}
+        </button>
       </div>
     </div>
   );

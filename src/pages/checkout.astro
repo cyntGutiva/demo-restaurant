@@ -1,17 +1,33 @@
 ---
 import { supabase } from "../lib/supabase";
-
 import Layout from "../layouts/Layout.astro";
 
-const { data: infoData, error } = await supabase
-  .from("info_tienda")
-  .select("*");
-// Transformamos el array en un objeto clave-valor para acceso rápido
-const info = {};
-infoData?.forEach((item) => {
-  info[item.clave] = item.valor;
-});
+type InfoTienda = {
+  whatsapp: string;
+  costo_delivery: string;
+  pedido_minimo: string;
+  tiempo_entrega: string;
+  mensaje_whatsapp: string;
+  nombre: string;
+  direccion: string;
+  telefono: string;
+  comuna?: string;
+  [key: string]: string | undefined;
+};
+
+const { data: infoData } = await supabase.from("info_tienda").select("*");
+
+const info = (infoData || []).reduce((acc, item) => {
+  acc[item.clave] = item.valor;
+  return acc;
+}, {} as InfoTienda);
+
 const whatsappLink = `https://wa.me/${info.whatsapp}`;
+const costoDelivery = Number(info.costo_delivery || 0);
+const pedidoMinimo = Number(info.pedido_minimo || 0);
+const tiempoEntrega = info.tiempo_entrega || "30-45 minutos";
+const mensajeWhatsapp =
+  info.mensaje_whatsapp || "¡Hola! Quiero hacer un pedido:";
 ---
 
 <Layout title="Finalizar Pedido | Angus Chicken" showCart={false}>
@@ -30,7 +46,6 @@ const whatsappLink = `https://wa.me/${info.whatsapp}`;
       <form
         id="order-form"
         class="space-y-6 bg-zinc-900 p-8 rounded-2xl border border-white/5 shadow-2xl"
-        data-whatsapp-link={whatsappLink}
       >
         <h3 class="text-xl font-bold mb-4 border-b border-white/10 pb-2">
           Datos de Entrega
@@ -45,32 +60,99 @@ const whatsappLink = `https://wa.me/${info.whatsapp}`;
             required
             class="w-full bg-black border border-white/10 p-3 rounded-lg focus:border-angus-red outline-none transition-colors"
           />
+          <span id="error-nombre" class="text-angus-red text-xs mt-1 hidden"
+          ></span>
         </div>
 
         <div>
           <label class="block text-sm text-gray-400 mb-2"
             >Teléfono de Contacto</label
           >
-          <input
-            type="tel"
-            id="telefono-cliente"
-            placeholder="+569 1234 5678"
-            required
-            class="w-full bg-black border border-white/10 p-3 rounded-lg focus:border-angus-red outline-none transition-colors"
-          />
+          <div
+            class="flex items-center bg-black border border-white/10 rounded-lg focus-within:border-angus-red transition-colors overflow-hidden h-[52px]"
+          >
+            <span
+              class="bg-white/5 h-full flex items-center px-4 text-gray-400 border-r border-white/10 text-sm font-medium whitespace-nowrap flex-shrink-0"
+            >
+              +56 9
+            </span>
+            <input
+              type="tel"
+              id="telefono-cliente"
+              placeholder="1234 5678"
+              maxlength="8"
+              required
+              class="w-full bg-transparent px-4 text-white outline-none font-medium placeholder:text-zinc-600"
+            />
+          </div>
+          <span id="error-telefono" class="text-angus-red text-xs mt-1 hidden"
+          ></span>
         </div>
 
-        <div>
-          <label class="block text-sm text-gray-400 mb-2"
-            >Dirección de Entrega</label
-          >
-          <textarea
-            id="direccion-cliente"
-            rows="3"
-            required
-            class="w-full bg-black border border-white/10 p-3 rounded-lg focus:border-angus-red outline-none transition-colors"
-            placeholder="Calle, número, departamento o referencia..."
-          ></textarea>
+        <h3 class="text-xl font-bold mb-4 border-b border-white/10 pb-2">
+          Método de Entrega
+        </h3>
+
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <label class="cursor-pointer">
+            <input
+              type="radio"
+              name="tipo-entrega"
+              value="delivery"
+              checked
+              class="peer hidden"
+            />
+            <div
+              class="p-3 text-center rounded-lg border border-white/10 bg-black peer-checked:border-angus-red peer-checked:bg-angus-red/10 transition-all"
+            >
+              <span class="block text-sm font-bold text-white">Delivery</span>
+            </div>
+          </label>
+
+          <label class="cursor-pointer">
+            <input
+              type="radio"
+              name="tipo-entrega"
+              value="retiro"
+              class="peer hidden"
+            />
+            <div
+              class="p-3 text-center rounded-lg border border-white/10 bg-black peer-checked:border-angus-red peer-checked:bg-angus-red/10 transition-all"
+            >
+              <span class="block text-sm font-bold text-white"
+                >Retiro en Local</span
+              >
+            </div>
+          </label>
+        </div>
+
+        <div id="wrapper-direccion" class="space-y-6">
+          <div>
+            <label class="block text-sm text-gray-400 mb-2"
+              >Dirección de Entrega</label
+            >
+            <textarea
+              id="direccion-cliente"
+              rows="3"
+              class="w-full bg-black border border-white/10 p-3 rounded-lg focus:border-angus-red outline-none transition-colors"
+              placeholder="Calle, número, departamento o referencia..."
+            ></textarea>
+            <span
+              id="error-direccion"
+              class="text-angus-red text-xs mt-1 hidden"></span>
+          </div>
+        </div>
+
+        <div
+          id="info-local"
+          class="hidden p-4 rounded-xl bg-white/5 border border-dashed border-white/20"
+        >
+          <p class="text-xs text-gray-400 uppercase tracking-widest mb-1">
+            Retiras en:
+          </p>
+          <p class="text-white font-medium">
+            {info.direccion}{info.comuna ? `, ${info.comuna}` : ""}
+          </p>
         </div>
 
         <button
@@ -91,63 +173,167 @@ const whatsappLink = `https://wa.me/${info.whatsapp}`;
   </main>
 </Layout>
 
-<script>
-  // Al no ser inline, este código se ejecuta una vez que el DOM está listo
-  const summaryDiv = document.getElementById("cart-summary");
-  const orderForm = document.getElementById("order-form") as HTMLFormElement;
+<script
+  define:vars={{
+    costoDelivery,
+    pedidoMinimo,
+    tiempoEntrega,
+    mensajeWhatsapp,
+    whatsappLink,
+  }}
+>
+  // --- 1. CONFIGURACIÓN Y SELECTORES ---
   const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-  let totalFinal = 0;
+  const form = document.getElementById("order-form");
+  const summaryDiv = document.getElementById("cart-summary");
 
-  // 1. Renderizar Resumen
-  if (summaryDiv) {
+  const nodes = {
+    nombre: document.getElementById("nombre-cliente"),
+    telefono: document.getElementById("telefono-cliente"),
+    direccion: document.getElementById("direccion-cliente"),
+    wrapperDir: document.getElementById("wrapper-direccion"),
+    infoLocal: document.getElementById("info-local"),
+    errNombre: document.getElementById("error-nombre"),
+    errTelefono: document.getElementById("error-telefono"),
+    errDireccion: document.getElementById("error-direccion"),
+  };
+
+  let subtotalPedido = 0;
+
+  // --- 2. RENDERIZADO ---
+  function render() {
+    if (!summaryDiv) return;
     if (cart.length === 0) {
       summaryDiv.innerHTML = `<p class="text-center py-10 text-gray-500">Carrito vacío</p>`;
-      orderForm?.classList.add("opacity-50", "pointer-events-none");
-    } else {
-      let htmlContent = "";
-      cart.forEach((item) => {
-        const subtotalItem = Number(item.price) * item.qty;
-        totalFinal += subtotalItem;
-        htmlContent += `
-          <div class="flex justify-between items-center border-b border-white/5 pb-4">
-            <div class="flex flex-col">
-              <div class="flex items-center gap-2">
-                <span class="text-angus-red font-black text-xl italic">${item.qty}x</span>
-                <span class="text-white font-bold text-lg">${item.name}</span>
-              </div>
-              <span class="text-gray-500 text-xs">$${Number(item.price).toLocaleString("es-CL")} c/u</span>
-            </div>
-            <span class="font-bold text-angus-orange">$${subtotalItem.toLocaleString("es-CL")}</span>
-          </div>`;
-      });
+      form?.classList.add("opacity-50", "pointer-events-none");
+      return;
+    }
 
-      htmlContent += `
-        <div class="pt-4 mt-4 border-t-2 border-white/10 flex justify-between items-center text-xl font-bold">
-          <span>Total a Pagar</span>
-          <span class="text-angus-red font-black">$${totalFinal.toLocaleString("es-CL")}</span>
+    subtotalPedido = cart.reduce(
+      (acc, item) => acc + Number(item.price) * item.qty,
+      0,
+    );
+
+    let html = cart
+      .map(
+        (item) => `
+      <div class="flex justify-between items-center border-b border-white/5 pb-4">
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <span class="text-angus-red font-black text-xl italic">${item.qty}x</span>
+            <span class="text-white font-bold text-lg">${item.name}</span>
+          </div>
+          <span class="text-gray-500 text-xs">$${Number(item.price).toLocaleString("es-CL")} c/u</span>
+        </div>
+        <span class="font-bold text-angus-orange">$${(item.price * item.qty).toLocaleString("es-CL")}</span>
+      </div>
+    `,
+      )
+      .join("");
+
+    // Delivery Visual
+    if (costoDelivery > 0) {
+      html += `
+        <div class="flex justify-between text-gray-400 text-sm py-2">
+          <span>Delivery</span><span>$${costoDelivery.toLocaleString("es-CL")}</span>
         </div>`;
-      summaryDiv.innerHTML = htmlContent;
+    }
+
+    html += `<div class="text-gray-500 text-xs text-right mt-2">⏱ Entrega estimada: ${tiempoEntrega}</div>`;
+
+    // Total Visual
+    const totalMostrado = subtotalPedido + costoDelivery;
+    html += `
+      <div class="pt-4 mt-2 border-t-2 border-white/10 flex justify-between items-center text-xl font-bold">
+        <span>Total a Pagar</span>
+        <span class="text-angus-red font-black">$${totalMostrado.toLocaleString("es-CL")}</span>
+      </div>`;
+
+    summaryDiv.innerHTML = html;
+
+    // Validación Pedido Mínimo
+    if (pedidoMinimo > 0 && subtotalPedido < pedidoMinimo) {
+      summaryDiv.innerHTML += `<p class="text-yellow-400 text-sm mt-2">⚠️ Pedido mínimo: $${pedidoMinimo.toLocaleString("es-CL")}</p>`;
+      form?.classList.add("opacity-50", "pointer-events-none");
     }
   }
 
-  // 2. Manejar Envío
-  orderForm?.addEventListener("submit", (e) => {
+  // --- 3. EVENTOS ---
+
+  // Limpiar fono
+  nodes.telefono?.addEventListener("input", (e) => {
+    e.target.value = e.target.value.replace(/\D/g, "");
+  });
+
+  // Toggle Delivery/Retiro
+  document.querySelectorAll('input[name="tipo-entrega"]').forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      const isRetiro = e.target.value === "retiro";
+      nodes.wrapperDir?.classList.toggle("hidden", isRetiro);
+      nodes.infoLocal?.classList.toggle("hidden", !isRetiro);
+      // Limpiar errores de dirección al cambiar
+      nodes.errDireccion?.classList.add("hidden");
+      nodes.direccion?.classList.remove("border-angus-red");
+    });
+  });
+
+  // Envío Formulario
+  form?.addEventListener("submit", (e) => {
     e.preventDefault();
 
-    // Obtenemos el link que pasamos desde Astro
-    const whatsappBaseUrl = orderForm.getAttribute("data-whatsapp-link");
+    const tipoEntrega = document.querySelector(
+      'input[name="tipo-entrega"]:checked',
+    ).value;
+    const fonoLimpio = nodes.telefono.value.replace(/\s+/g, "");
+    const fonoRegex = /^\d{8}$/;
+    let esValido = true;
 
-    const cliente = (
-      document.getElementById("nombre-cliente") as HTMLInputElement
-    ).value;
-    const telefono = (
-      document.getElementById("telefono-cliente") as HTMLInputElement
-    ).value;
-    const direccion = (
-      document.getElementById("direccion-cliente") as HTMLTextAreaElement
-    ).value;
+    // Reset Errores
+    [nodes.errNombre, nodes.errTelefono, nodes.errDireccion].forEach((el) =>
+      el?.classList.add("hidden"),
+    );
+    [nodes.nombre, nodes.telefono, nodes.direccion].forEach((el) =>
+      el?.classList.remove("border-angus-red"),
+    );
 
-    const listaProductos = cart
+    // Validar Nombre
+    if (nodes.nombre.value.trim() === "") {
+      nodes.errNombre.innerText = "El nombre es obligatorio";
+      nodes.errNombre.classList.remove("hidden");
+      nodes.nombre.classList.add("border-angus-red");
+      esValido = false;
+    }
+
+    // Validar Teléfono
+    if (fonoLimpio.length !== 8 || !fonoRegex.test(fonoLimpio)) {
+      nodes.errTelefono.innerText = "Ingresa 8 dígitos válidos";
+      nodes.errTelefono.classList.remove("hidden");
+      nodes.telefono.closest(".flex")?.classList.add("border-angus-red");
+      esValido = false;
+    }
+
+    // Validar Dirección CONDICIONAL
+    let direccionFinal = "Retiro en local";
+    if (tipoEntrega === "delivery") {
+      if (nodes.direccion.value.trim() === "") {
+        nodes.errDireccion.innerText =
+          "La dirección es obligatoria para el despacho";
+        nodes.errDireccion.classList.remove("hidden");
+        nodes.direccion.classList.add("border-angus-red");
+        esValido = false;
+      } else {
+        direccionFinal = nodes.direccion.value;
+      }
+    }
+
+    if (!esValido) return;
+
+    // --- 4. CONSTRUCCIÓN WHATSAPP ---
+    const totalFinal =
+      tipoEntrega === "delivery"
+        ? subtotalPedido + costoDelivery
+        : subtotalPedido;
+    const listaWsp = cart
       .map(
         (item) =>
           `• ${item.qty}x ${item.name} ($${(item.price * item.qty).toLocaleString("es-CL")})`,
@@ -155,13 +341,19 @@ const whatsappLink = `https://wa.me/${info.whatsapp}`;
       .join("%0A");
 
     const mensaje =
-      `*NUEVO PEDIDO - ANGUS CHICKEN*%0A%0A` +
-      `*Cliente:* ${cliente}%0A` +
-      `*Teléfono:* ${telefono}%0A` +
-      `*Dirección:* ${direccion}%0A%0A` +
-      `*Detalle:*%0A${listaProductos}%0A%0A` +
-      `*TOTAL:* $${totalFinal.toLocaleString("es-CL")}`;
+      `*${mensajeWhatsapp}*%0A%0A` +
+      `*Tipo:* ${tipoEntrega.toUpperCase()}%0A` +
+      `*Cliente:* ${nodes.nombre.value}%0A` +
+      `*Teléfono:* +569${fonoLimpio}%0A` +
+      `*Dirección:* ${direccionFinal}%0A%0A` +
+      `*Pedido:*%0A${listaWsp}%0A` +
+      (tipoEntrega === "delivery" && costoDelivery > 0
+        ? `%0A*Envío:* $${costoDelivery.toLocaleString("es-CL")}`
+        : "") +
+      `%0A*TOTAL: $${totalFinal.toLocaleString("es-CL")}*`;
 
-    window.open(`${whatsappBaseUrl}?text=${mensaje}`, "_blank");
+    window.open(`${whatsappLink}?text=${mensaje}`, "_blank");
   });
+
+  render();
 </script>

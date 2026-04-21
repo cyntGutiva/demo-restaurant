@@ -1,5 +1,6 @@
 // src/components/admin/AdminCarta.tsx
 import { useState, useEffect, useRef } from "react";
+import { ImageIcon, ImageOff } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
 type Categoria = { id: number; nombre: string };
@@ -250,17 +251,11 @@ export default function AdminCarta() {
               key={p.id}
               className={`bg-zinc-900 border rounded-xl p-4 flex items-center gap-4 ${p.disponible ? "border-white/8" : "border-white/4 opacity-60"}`}
             >
-              <div className="w-12 h-12 rounded-lg bg-zinc-800 overflow-hidden flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
                 {p.image_url ? (
-                  <img
-                    src={p.image_url}
-                    alt={p.nombre}
-                    className="w-full h-full object-cover"
-                  />
+                  <ImageIcon className="w-5 h-5 text-green-400" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">
-                    🍗
-                  </div>
+                  <ImageOff className="w-5 h-5 text-zinc-600" />
                 )}
               </div>
               <div className="flex-1 min-w-0">

@@ -78,14 +78,6 @@ export default function AdminCategorias() {
     fetchAll();
   };
 
-  const toggleActiva = async (c: Categoria) => {
-    await supabase
-      .from("categorias")
-      .update({ activa: !c.activa })
-      .eq("id", c.id);
-    fetchAll();
-  };
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -132,12 +124,6 @@ export default function AdminCategorias() {
                 <p className="text-zinc-600 text-xs mt-0.5">Orden: {c.orden}</p>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => toggleActiva(c)}
-                  className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${c.activa ? "border-green-500/30 text-green-400 hover:bg-green-500/10" : "border-white/10 text-zinc-500 hover:bg-white/5"}`}
-                >
-                  {c.activa ? "Activa" : "Oculta"}
-                </button>
                 <button
                   onClick={() => openEdit(c)}
                   className="text-xs px-3 py-1.5 rounded-lg border border-white/8 text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"

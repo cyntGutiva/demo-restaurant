@@ -9,11 +9,24 @@ import MenuCard from "../components/MenuCard.astro";
 import Services from "../components/Services.astro";
 import Location from "../components/Location.astro";
 import Footer from "../components/Footer.astro";
+
+type InfoTienda = {
+  whatsapp: string;
+  costo_delivery: string;
+  pedido_minimo: string;
+  tiempo_entrega: string;
+  mensaje_whatsapp: string;
+  nombre: string;
+  direccion: string;
+  telefono: string;
+  [key: string]: string; // permite otras claves sin tipar
+};
+
 const { data: infoData, error } = await supabase
   .from("info_tienda")
   .select("*");
 // Transformamos el array en un objeto clave-valor para acceso rápido
-const info = {};
+const info = {} as InfoTienda;
 infoData?.forEach((item) => {
   info[item.clave] = item.valor;
 });
