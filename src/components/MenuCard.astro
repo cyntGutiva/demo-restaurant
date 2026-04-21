@@ -1,7 +1,4 @@
 ---
-// Importas tu cliente actual
-import { supabase } from "../lib/supabase";
-
 // Pasamos las credenciales al cliente de forma segura para el fetch
 const publicUrl = import.meta.env.PUBLIC_SUPABASE_URL;
 const publicAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
@@ -22,7 +19,6 @@ const publicAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 </section>
 
 <script is:inline define:vars={{ publicUrl, publicAnonKey }}>
-  // Función para formatear dinero en Chile
   const formatter = new Intl.NumberFormat("es-CL", {
     style: "currency",
     currency: "CLP",
@@ -33,10 +29,10 @@ const publicAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
     const container = document.getElementById("menu-dinamico");
 
     try {
-      // Usamos fetch directo para no cargar toda la librería de Supabase en el cliente
-      // pero usamos las credenciales de tu archivo de config
+      const queryParams = "select=id,nombre,orden,productos(*)&order=orden.asc";
+
       const response = await fetch(
-        `${publicUrl}/rest/v1/categorias?select=id,nombre,orden,productos(*)&order=orden.asc&productos.order=orden.asc`,
+        `${publicUrl}/rest/v1/categorias?${queryParams}`,
         {
           headers: {
             apikey: publicAnonKey,
@@ -49,20 +45,55 @@ const publicAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
       container.innerHTML = "";
 
       categorias.forEach((cat) => {
-        const productosValidos = cat.productos.filter((p) => p.disponible);
-        if (productosValidos.length === 0) return;
+        // 1. Filtrar solo los que están marcados como disponibles en el admin
+        const productosVisibles = cat.productos.filter(
+          (p) => p.disponible === true,
+        );
 
-        let cardsHtml = productosValidos
-          .map(
-            (item) => `
-          <div class="menu-card bg-angus-black rounded-2xl overflow-hidden border border-white/5 flex flex-col group transition-all duration-300 hover:border-white/10">
+        if (productosVisibles.length === 0) return;
+
+        // 2. ORDENAMIENTO PERSONALIZADO:
+        // Prioridad: Stock > Destacado > Orden manual
+        const productosOrdenados = productosVisibles.sort((a, b) => {
+          const stockA = a.stock > 0 ? 1 : 0;
+          const stockB = b.stock > 0 ? 1 : 0;
+
+          // Primero por stock (los que tienen stock 1, agotados 0)
+          if (stockA !== stockB) return stockB - stockA;
+
+          // Luego por destacado (true = 1, false = 0)
+          if (a.destacado !== b.destacado) return b.destacado - a.destacado;
+
+          // Finalmente por el orden manual asignado
+          return a.orden - b.orden;
+        });
+
+        let cardsHtml = productosOrdenados
+          .map((item) => {
+            const esAgotado = item.stock <= 0;
+
+            const badgeDestacado = item.destacado
+              ? `<div class="absolute top-4 left-4 bg-yellow-500 text-slate-950 px-3 py-1 rounded-full text-xs font-black uppercase tracking-tighter shadow-lg z-20 ${esAgotado ? "opacity-50 grayscale" : "animate-pulse"}">
+                 🔥 Popular
+                </div>`
+              : "";
+
+            const cardStyleClasses = `
+              menu-card bg-angus-black rounded-2xl overflow-hidden border flex flex-col group transition-all duration-300 relative
+              ${item.destacado ? "border-yellow-500/30" : "border-white/5"}
+              ${esAgotado ? "brightness-[0.35] grayscale-[0.7] pointer-events-none" : "hover:border-white/10"}
+            `;
+
+            return `
+          <div class="${cardStyleClasses}">
+            ${badgeDestacado}
             <div class="h-48 overflow-hidden relative bg-gray-800">
               ${
                 item.image_url
-                  ? `<img src="${item.image_url}" alt="${item.nombre}" class="w-full h-full object-cover group-hover:scale-110 transition-transform" loading="lazy" />`
-                  : `<div class="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-700 text-xs">NO IMAGE</div>`
+                  ? `<img src="${item.image_url}" alt="${item.nombre}" class="w-full h-full object-cover ${!esAgotado ? "group-hover:scale-110" : ""} transition-transform" loading="lazy" />`
+                  : `<div class="w-full h-full flex items-center justify-center bg-zinc-900 text-zinc-700 text-xs italic">Sin imagen</div>`
               }
-              <div class="absolute top-4 right-4 bg-angus-red text-white px-3 py-1 rounded-full font-bold shadow-lg">
+              <div class="absolute top-4 right-4 bg-angus-red text-white px-3 py-1 rounded-full font-bold shadow-lg z-10 ${esAgotado ? "opacity-50" : ""}">
                 ${formatter.format(item.precio)}
               </div>
             </div>
@@ -72,18 +103,19 @@ const publicAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
               <p class="text-gray-400 text-sm mb-4 line-clamp-2">${item.descripcion || ""}</p>
               
               <button
-                class="add-to-cart-btn w-full py-2 rounded-lg border border-white/10 text-white hover:bg-white hover:text-angus-black transition-all mt-auto disabled:opacity-50 font-semibold"
+                class="add-to-cart-btn w-full py-2 rounded-lg border ${item.destacado ? "border-yellow-500/50 text-yellow-500" : "border-white/10 text-white"} transition-all mt-auto disabled:opacity-50 font-semibold"
                 data-id="${item.id}"
                 data-nombre="${item.nombre}"
                 data-precio="${item.precio}"
                 data-stock="${item.stock}"
+                ${esAgotado ? "disabled" : ""}
               >
-                ${item.stock <= 0 ? "Agotado" : "Agregar al pedido"}
+                ${esAgotado ? "Agotado" : "Agregar al pedido"}
               </button>
             </div>
           </div>
-        `,
-          )
+        `;
+          })
           .join("");
 
         container.innerHTML += `
@@ -99,17 +131,15 @@ const publicAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
         `;
       });
 
-      // ¡IMPORTANTE! Re-ejecutar la lógica de stock del carrito
       if (window.actualizarBotonesStock) {
         window.actualizarBotonesStock();
       }
     } catch (err) {
       console.error("Error cargando el menú:", err);
       container.innerHTML =
-        '<p class="text-center text-red-500">Error al conectar con la base de datos.</p>';
+        '<p class="text-center text-red-500 py-10">Error al conectar con la carta dinámica.</p>';
     }
   }
 
-  // Iniciamos la carga
   document.addEventListener("DOMContentLoaded", cargarMenu);
 </script>
